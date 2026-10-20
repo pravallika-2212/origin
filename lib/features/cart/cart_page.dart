@@ -5,7 +5,7 @@ import 'package:origin/core/fonts.dart';
 import '../../app/theme.dart';
 import '../../core/utils/breakpoints.dart';
 import '../../core/utils/formatters.dart';
-import '../../core/widgets/artefact_art.dart';
+import '../../core/widgets/origin_heritage_image.dart';
 import '../../core/widgets/origin_button.dart';
 import '../../core/widgets/origin_footer.dart';
 import '../../core/widgets/origin_header.dart';
@@ -17,28 +17,6 @@ import '../../data/repositories/currency_provider.dart';
 class CartPage extends ConsumerWidget {
   const CartPage({super.key});
 
-  ArtefactType _getArtefactType(String code) {
-    switch (code) {
-      case 'neck':
-        return ArtefactType.neck;
-      case 'crown':
-        return ArtefactType.crown;
-      case 'vase':
-        return ArtefactType.vase;
-      case 'robe':
-        return ArtefactType.robe;
-      case 'fan':
-        return ArtefactType.fan;
-      case 'box':
-        return ArtefactType.box;
-      case 'chair':
-        return ArtefactType.chair;
-      case 'ear':
-        return ArtefactType.ear;
-      default:
-        return ArtefactType.lotus;
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -196,14 +174,19 @@ class CartPage extends ConsumerWidget {
                   child: Container(
                     width: 80,
                     height: 80,
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: OriginColors.ivoryDark,
                       borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: OriginColors.cardBorder),
                     ),
                     alignment: Alignment.center,
-                    child: ArtefactArt(
-                      type: _getArtefactType(item.product.artefactCode),
-                      size: 54,
+                    child: OriginHeritageImage(
+                      localAssetPath: item.product.localAssetPath,
+                      networkUrl: item.product.primaryImage,
+                      artefactCode: item.product.artefactCode,
+                      fit: BoxFit.contain,
+                      semanticLabel: item.product.name,
                     ),
                   ),
                 ),

@@ -20,6 +20,9 @@ import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/wishlist_repository.dart';
 import '../auth/auth_controller.dart';
 import '../enquiry/enquiry_dialog.dart';
+import '../../core/widgets/image_credit_dialog.dart';
+import '../../core/widgets/product_gallery.dart';
+import '../../data/repositories/image_registry.dart';
 
 class ProductDetailPage extends ConsumerStatefulWidget {
   const ProductDetailPage({super.key, required this.productId});
@@ -33,6 +36,7 @@ class ProductDetailPage extends ConsumerStatefulWidget {
 class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
   double _rotateAngle = 0.0;
   bool _isFlashingGold = false;
+  int _galleryViewMode = 0; // 0: Archival Photography, 1: 360 Geometric View
 
   ArtefactType _getArtefactType(String code) {
     switch (code) {
@@ -629,117 +633,295 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
     );
   }
 
-  // Gallery Stage with Hero & 360-degree rotation view
+  // Gallery Stage with Archival Photography & Interactive 360-degree rotation view
   Widget _buildGalleryStage(Product product) {
+    final creditItem = OriginImageRegistry.findByProductId(product.id);
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // View Mode Selector Pills
         Container(
-          height: 440,
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: OriginColors.ivoryDark,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: OriginColors.cardBorder),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x14000000),
-                blurRadius: 20,
-                offset: Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              // Radial backdrop
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: [Color(0xFFFFFBF0), Colors.white],
-                    radius: 0.8,
-                  ),
-                ),
-              ),
-
-              // Hero Interactive 360 Artefact
-              Hero(
-                tag: 'product-${product.id}',
-                child: ArtefactArt(
-                  type: _getArtefactType(product.artefactCode),
-                  size: 260,
-                  rotationAngle: _rotateAngle,
-                ),
-              ),
-
-              // 360 Badge in top-left
-              Positioned(
-                top: 16,
-                left: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: OriginColors.ivoryDark,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: OriginColors.gold.withValues(alpha: 0.6)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.sync, size: 14, color: OriginColors.goldDark),
-                      const SizedBox(width: 6),
-                      Text(
-                        '360° INTERACTIVE VIEW',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 9.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.2,
-                          color: OriginColors.royalBronze,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Interactive 360 Rotation Slider
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(4),
             border: Border.all(color: OriginColors.cardBorder),
           ),
           child: Row(
             children: [
-              const Icon(Icons.rotate_left, size: 18, color: OriginColors.goldDark),
               Expanded(
-                child: Slider(
-                  value: _rotateAngle,
-                  min: -pi,
-                  max: pi,
-                  activeColor: OriginColors.goldDark,
-                  inactiveColor: OriginColors.ivoryDark,
-                  onChanged: (val) {
-                    setState(() => _rotateAngle = val);
-                  },
+                child: GestureDetector(
+                  onTap: () => setState(() => _galleryViewMode = 0),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _galleryViewMode == 0 ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: _galleryViewMode == 0
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x14000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              )
+                            ]
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.camera_alt_outlined,
+                          size: 14,
+                          color: _galleryViewMode == 0
+                              ? OriginColors.goldDark
+                              : OriginColors.inkMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'ARCHIVAL PHOTOGRAPHY',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
+                            color: _galleryViewMode == 0
+                                ? OriginColors.ink
+                                : OriginColors.inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const Icon(Icons.rotate_right, size: 18, color: OriginColors.goldDark),
-              const SizedBox(width: 8),
-              Text(
-                'DRAG TO ROTATE',
-                style: GoogleFonts.montserrat(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.5,
-                  color: OriginColors.inkMuted,
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _galleryViewMode = 1),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: _galleryViewMode == 1 ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: _galleryViewMode == 1
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x14000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 1),
+                              )
+                            ]
+                          : null,
+                    ),
+                    alignment: Alignment.center,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.sync,
+                          size: 14,
+                          color: _galleryViewMode == 1
+                              ? OriginColors.goldDark
+                              : OriginColors.inkMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '360° GEOMETRIC VIEW',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.1,
+                            color: _galleryViewMode == 1
+                                ? OriginColors.ink
+                                : OriginColors.inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
+
+        // Gallery Display
+        if (_galleryViewMode == 0) ...[
+          ProductGallery(product: product, height: 440),
+          const SizedBox(height: 14),
+          // Archival Provenance & License Banner
+          if (creditItem != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: OriginColors.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.verified, size: 16, color: OriginColors.goldDark),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'ARCHIVAL SPECIMEN · ${creditItem.sourceName.toUpperCase()}',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: OriginColors.goldDark,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'License: ${creditItem.license} · Provenance cleared',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11,
+                            color: OriginColors.inkMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => showImageCreditDialog(context, item: creditItem),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: OriginColors.gold, width: 0.8),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: const Icon(Icons.info_outline, size: 12, color: OriginColors.goldDark),
+                    label: Text(
+                      'RIGHTS',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.0,
+                        color: OriginColors.goldDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ] else ...[
+          // 360 Rotation Stage
+          Container(
+            height: 440,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: OriginColors.cardBorder),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x14000000),
+                  blurRadius: 20,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Radial backdrop
+                Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: [Color(0xFFFFFBF0), Colors.white],
+                      radius: 0.8,
+                    ),
+                  ),
+                ),
+
+                // Hero Interactive 360 Artefact
+                Hero(
+                  tag: 'product-${product.id}',
+                  child: ArtefactArt(
+                    type: _getArtefactType(product.artefactCode),
+                    size: 260,
+                    rotationAngle: _rotateAngle,
+                  ),
+                ),
+
+                // 360 Badge in top-left
+                Positioned(
+                  top: 16,
+                  left: 16,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: OriginColors.ivoryDark,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: OriginColors.gold.withValues(alpha: 0.6)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.sync, size: 14, color: OriginColors.goldDark),
+                        const SizedBox(width: 6),
+                        Text(
+                          '360° INTERACTIVE VIEW',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.2,
+                            color: OriginColors.royalBronze,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Interactive 360 Rotation Slider
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: OriginColors.cardBorder),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.rotate_left, size: 18, color: OriginColors.goldDark),
+                Expanded(
+                  child: Slider(
+                    value: _rotateAngle,
+                    min: -pi,
+                    max: pi,
+                    activeColor: OriginColors.goldDark,
+                    inactiveColor: OriginColors.ivoryDark,
+                    onChanged: (val) {
+                      setState(() => _rotateAngle = val);
+                    },
+                  ),
+                ),
+                const Icon(Icons.rotate_right, size: 18, color: OriginColors.goldDark),
+                const SizedBox(width: 8),
+                Text(
+                  'DRAG TO ROTATE',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    color: OriginColors.inkMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

@@ -27,6 +27,11 @@ class Product {
     this.status = ProductStatus.available,
     this.published = true,
     this.featured = false,
+    this.imageSourceId,
+    this.localAssetPath,
+    this.isHistoricalReference = false,
+    this.museumName,
+    this.accessionNumber,
   });
 
   final String id;
@@ -48,9 +53,26 @@ class Product {
   final ProductStatus status;
   final bool published;
   final bool featured;
+  final String? imageSourceId;
+  final String? localAssetPath;
+  final bool isHistoricalReference;
+  final String? museumName;
+  final String? accessionNumber;
 
   String get typeLabel =>
       type == ProductType.certifiedAntique ? 'Antique · Certified' : 'Royal-Inspired';
+
+  String? get primaryImage {
+    if (localAssetPath != null && localAssetPath!.isNotEmpty) {
+      return localAssetPath;
+    }
+    for (final img in images) {
+      if (img.startsWith('assets/') || img.startsWith('http://') || img.startsWith('https://')) {
+        return img;
+      }
+    }
+    return null;
+  }
 
   Product copyWith({
     String? id,
@@ -72,6 +94,11 @@ class Product {
     ProductStatus? status,
     bool? published,
     bool? featured,
+    String? imageSourceId,
+    String? localAssetPath,
+    bool? isHistoricalReference,
+    String? museumName,
+    String? accessionNumber,
   }) {
     return Product(
       id: id ?? this.id,
@@ -93,6 +120,11 @@ class Product {
       status: status ?? this.status,
       published: published ?? this.published,
       featured: featured ?? this.featured,
+      imageSourceId: imageSourceId ?? this.imageSourceId,
+      localAssetPath: localAssetPath ?? this.localAssetPath,
+      isHistoricalReference: isHistoricalReference ?? this.isHistoricalReference,
+      museumName: museumName ?? this.museumName,
+      accessionNumber: accessionNumber ?? this.accessionNumber,
     );
   }
 }

@@ -5,6 +5,7 @@ import '../../app/theme.dart';
 import '../../core/utils/breakpoints.dart';
 import '../animation/lotus_painter.dart';
 import 'origin_toast.dart';
+import 'image_credit_dialog.dart';
 
 class OriginFooter extends StatefulWidget {
   const OriginFooter({super.key});
@@ -199,6 +200,8 @@ class _OriginFooterState extends State<OriginFooter> {
                   _LegalLink(label: 'Terms of Service', onTap: () => context.go('/terms')),
                   const Text('·', style: TextStyle(color: Color(0xFF66705F))),
                   _LegalLink(label: 'Shipping & Returns', onTap: () => context.go('/shipping')),
+                  const Text('·', style: TextStyle(color: Color(0xFF66705F))),
+                  _LegalLink(label: 'Archival Rights & Provenance', onTap: () => showFullRegistryDialog(context)),
                 ],
               ),
             ],

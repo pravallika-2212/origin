@@ -7,6 +7,8 @@ class CategoryItem {
     required this.tagline,
     required this.artefactCode,
     required this.bgColor,
+    this.imageUrl,
+    this.localAssetPath,
   });
 
   final String id;
@@ -14,4 +16,6 @@ class CategoryItem {
   final String tagline;
   final String artefactCode;
   final Color bgColor;
+  final String? imageUrl;
+  final String? localAssetPath;
 }

@@ -11,6 +11,8 @@ class ArticleModel {
     required this.publishedAt,
     required this.author,
     this.relatedProductIds = const [],
+    this.imageUrl,
+    this.localAssetPath,
   });
 
   final String id;
@@ -24,4 +26,6 @@ class ArticleModel {
   final DateTime publishedAt;
   final String author;
   final List<String> relatedProductIds;
+  final String? imageUrl;
+  final String? localAssetPath;
 }

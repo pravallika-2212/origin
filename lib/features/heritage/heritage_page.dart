@@ -7,12 +7,27 @@ import '../../core/widgets/artefact_art.dart';
 import '../../core/widgets/origin_footer.dart';
 import '../../core/widgets/origin_header.dart';
 import '../../core/widgets/product_card.dart';
+import '../../core/widgets/origin_heritage_image.dart';
 import '../../data/repositories/product_repository.dart';
 
 class HeritagePage extends ConsumerWidget {
   const HeritagePage({super.key, required this.country});
 
   final String country;
+
+  String _getCountryImagePath(String c) {
+    final lower = c.toLowerCase();
+    if (lower.contains('india')) return 'assets/images/hero_mysore_durbar.jpg';
+    if (lower.contains('china')) return 'assets/images/hero_forbidden_city.jpg';
+    if (lower.contains('korea')) return 'assets/images/prod_korean_wonsam.jpg';
+    if (lower.contains('europe')) return 'assets/images/hero_versailles_hall.jpg';
+    if (lower.contains('persia') || lower.contains('ottoman')) return 'assets/images/prod_khatam_box.jpg';
+    if (lower.contains('japan')) return 'assets/images/prod_japan_makie.jpg';
+    if (lower.contains('africa')) return 'assets/images/prod_benin_bronze.jpg';
+    if (lower.contains('america')) return 'assets/images/prod_chimu_gold.jpg';
+    if (lower.contains('asia') || lower.contains('indonesia') || lower.contains('thailand')) return 'assets/images/prod_songket_palembang.jpg';
+    return 'assets/images/hero_versailles_hall.jpg';
+  }
 
   ArtefactType _getArtefactType(String c) {
     final lower = c.toLowerCase();
@@ -191,15 +206,17 @@ class HeritagePage extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(110),
-                            border: Border.all(color: OriginColors.gold, width: 1.5),
+                            border: Border.all(color: OriginColors.gold, width: 2),
                             boxShadow: const [
                               BoxShadow(color: Color(0x289A7440), blurRadius: 28),
                             ],
                           ),
-                          alignment: Alignment.center,
-                          child: ArtefactArt(
-                            type: _getArtefactType(country),
-                            size: 140,
+                          clipBehavior: Clip.antiAlias,
+                          child: OriginHeritageImage(
+                            localAssetPath: _getCountryImagePath(country),
+                            artefactCode: _getArtefactType(country).name,
+                            fit: BoxFit.cover,
+                            semanticLabel: '$country Royal Heritage Specimen',
                           ),
                         ),
                       ],

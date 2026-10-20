@@ -6,6 +6,7 @@ import '../../app/theme.dart';
 import '../../core/utils/breakpoints.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/artefact_art.dart';
+import '../../core/widgets/origin_heritage_image.dart';
 import '../../core/widgets/origin_footer.dart';
 import '../../core/widgets/origin_header.dart';
 import '../../data/models/article.dart';
@@ -233,9 +234,16 @@ class _ArticleItemCardState extends State<_ArticleItemCard> {
                 decoration: BoxDecoration(
                   color: OriginColors.ivoryDark,
                   borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: OriginColors.cardBorder),
                 ),
-                alignment: Alignment.center,
-                child: ArtefactArt(type: widget.type, size: 100),
+                clipBehavior: Clip.antiAlias,
+                child: OriginHeritageImage(
+                  localAssetPath: widget.article.localAssetPath,
+                  networkUrl: widget.article.imageUrl,
+                  artefactCode: widget.article.artefactCode,
+                  fit: BoxFit.cover,
+                  semanticLabel: widget.article.title,
+                ),
               );
 
               return isWide

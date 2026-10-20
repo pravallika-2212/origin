@@ -63,9 +63,13 @@ class _ShopPageState extends ConsumerState<ShopPage> {
       'India',
       'China',
       'Korea',
+      'Japan',
       'Europe',
       'Persia and Ottoman',
       'The Americas',
+      'Africa',
+      'Indonesia & Southeast Asia',
+      'Mongolia & Central Asia',
     ];
 
     return Scaffold(

@@ -10,7 +10,7 @@ import '../../data/repositories/currency_provider.dart';
 import '../../data/repositories/wishlist_repository.dart';
 import '../../features/auth/auth_controller.dart';
 import '../../features/enquiry/enquiry_dialog.dart';
-import 'artefact_art.dart';
+import 'origin_heritage_image.dart';
 import 'origin_toast.dart';
 
 class ProductCard extends ConsumerStatefulWidget {
@@ -62,28 +62,7 @@ class _ProductCardState extends ConsumerState<ProductCard>
     super.dispose();
   }
 
-  ArtefactType _getArtefactType(String code) {
-    switch (code) {
-      case 'neck':
-        return ArtefactType.neck;
-      case 'crown':
-        return ArtefactType.crown;
-      case 'vase':
-        return ArtefactType.vase;
-      case 'robe':
-        return ArtefactType.robe;
-      case 'fan':
-        return ArtefactType.fan;
-      case 'box':
-        return ArtefactType.box;
-      case 'chair':
-        return ArtefactType.chair;
-      case 'ear':
-        return ArtefactType.ear;
-      default:
-        return ArtefactType.lotus;
-    }
-  }
+
 
   Color _getCardColor() {
     if (widget.bgColor != null) return widget.bgColor!;
@@ -202,9 +181,28 @@ class _ProductCardState extends ConsumerState<ProductCard>
                     alignment: Alignment.center,
                     child: Hero(
                       tag: 'product-${widget.product.id}',
-                      child: ArtefactArt(
-                        type: _getArtefactType(widget.product.artefactCode),
-                        size: 120,
+                      child: AnimatedScale(
+                        scale: _isHovered ? 1.05 : 1.0,
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: OriginHeritageImage(
+                            localAssetPath: widget.product.localAssetPath ??
+                                (widget.product.images.isNotEmpty &&
+                                        widget.product.images.first.startsWith('assets/')
+                                    ? widget.product.images.first
+                                    : null),
+                            networkUrl: widget.product.primaryImage != null &&
+                                    widget.product.primaryImage!.startsWith('http')
+                                ? widget.product.primaryImage
+                                : null,
+                            artefactCode: widget.product.artefactCode,
+                            fit: BoxFit.contain,
+                            height: 170,
+                            semanticLabel: widget.product.name,
+                          ),
+                        ),
                       ),
                     ),
                   ),

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:origin/core/fonts.dart';
 import '../../app/theme.dart';
 import '../../core/utils/formatters.dart';
-import '../../core/widgets/artefact_art.dart';
+import '../../core/widgets/origin_heritage_image.dart';
 import '../../core/widgets/origin_button.dart';
 import '../../core/widgets/origin_footer.dart';
 import '../../core/widgets/origin_header.dart';
@@ -17,24 +17,6 @@ class ArticlePage extends ConsumerWidget {
 
   final String articleId;
 
-  ArtefactType _getArtefactType(String code) {
-    switch (code) {
-      case 'neck':
-        return ArtefactType.neck;
-      case 'crown':
-        return ArtefactType.crown;
-      case 'vase':
-        return ArtefactType.vase;
-      case 'robe':
-        return ArtefactType.robe;
-      case 'fan':
-        return ArtefactType.fan;
-      case 'box':
-        return ArtefactType.box;
-      default:
-        return ArtefactType.lotus;
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -142,23 +124,40 @@ class ArticlePage extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Featured Artefact Illustration
+                  // Featured Artefact Photograph
                   Container(
                     width: double.infinity,
-                    height: 280,
+                    height: 320,
                     decoration: BoxDecoration(
                       color: OriginColors.ivoryDark,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: OriginColors.cardBorder),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x14000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    alignment: Alignment.center,
-                    child: ArtefactArt(type: _getArtefactType(article.artefactCode), size: 160),
+                    clipBehavior: Clip.antiAlias,
+                    child: OriginHeritageImage(
+                      localAssetPath: article.localAssetPath,
+                      networkUrl: article.imageUrl,
+                      artefactCode: article.artefactCode,
+                      fit: BoxFit.contain,
+                      semanticLabel: article.title,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Center(
                     child: Text(
-                      'Illustrative study of ${article.country} court artifacts. Museum archives referenced.',
-                      style: GoogleFonts.montserrat(fontSize: 11.5, color: OriginColors.inkMuted, fontStyle: FontStyle.italic),
+                      'Verified archival specimen: ${article.country} royal court material culture. Preserved in open-access museum collections.',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 11.5,
+                        color: OriginColors.goldDark,
+                        fontStyle: FontStyle.italic,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 40),

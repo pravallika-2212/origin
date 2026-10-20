@@ -14,6 +14,8 @@ import '../../core/widgets/origin_footer.dart';
 import '../../core/widgets/origin_header.dart';
 import '../../core/widgets/product_card.dart';
 import '../../core/widgets/teaser_card.dart';
+import '../../core/widgets/image_credit_dialog.dart';
+import '../../core/widgets/origin_heritage_image.dart';
 import '../../data/models/product.dart';
 import '../../data/repositories/product_repository.dart';
 import '../auth/auth_controller.dart';
@@ -41,12 +43,13 @@ class _LandingPageState extends ConsumerState<LandingPage>
   int _curShowcase = 0;
   Timer? _showcaseTimer;
   final List<List<dynamic>> _showcaseData = [
-    [ArtefactType.crown, 'Europe · Ceremonial Archducal Diadem · illustrative'],
-    [ArtefactType.neck, 'India · Patiala Mughal Kundan Necklace · illustrative'],
-    [ArtefactType.vase, 'China · Imperial Wanli Cobalt Vase · illustrative'],
-    [ArtefactType.robe, 'Korea · Joseon Court Robe (Wonsam) · illustrative'],
-    [ArtefactType.fan, 'Japan · Heian Imperial Court Fan · illustrative'],
-    [ArtefactType.box, 'Persia · Isfahan Khatamkari Casket · illustrative'],
+    [ArtefactType.crown, 'Europe · Imperial Crown of Austria · Hofburg Vienna', 'assets/images/prod_austria_crown.jpg', 'img-habsburg-crown'],
+    [ArtefactType.neck, 'India · Mughal Kundan & Emerald Necklace · The Met', 'assets/images/prod_kundan_necklace.jpg', 'img-kundan-necklace'],
+    [ArtefactType.vase, 'China · Imperial Cobalt Dragon Porcelain · Wanli Period', 'assets/images/prod_ming_vase.jpg', 'img-ming-vase'],
+    [ArtefactType.robe, 'Korea · Joseon Royal Court Robe (Wonsam)', 'assets/images/prod_korean_wonsam.jpg', 'img-joseon-wonsam'],
+    [ArtefactType.fan, 'Japan · Heian Court Maki-e Lacquered Treasures', 'assets/images/prod_japan_makie.jpg', 'img-japan-makie'],
+    [ArtefactType.box, 'Persia · Isfahan Khatamkari Royal Inlaid Casket', 'assets/images/prod_khatam_box.jpg', 'img-isfahan-casket'],
+    [ArtefactType.chair, 'France · Versailles Giltwood Royal Console', 'assets/images/prod_versailles_console.jpg', 'img-versailles-console'],
   ];
 
   // Parallax on hero arches
@@ -64,51 +67,103 @@ class _LandingPageState extends ConsumerState<LandingPage>
   final List<Map<String, dynamic>> _civilizations = [
     {
       'country': 'India',
-      'title': 'Rajput and Mughal Heritage',
+      'title': 'Rajput and Mughal Imperial Heritage',
       'desc':
-          'Richly embroidered zari garments, historic kundan and meenakari gemstone jewelry, and ceremonial treasury pieces crafted under the patronage of the imperial ateliers.',
+          'Richly embroidered zari drapes, kundan and meenakari gemstone jewelry, and ceremonial treasury pieces crafted under the patronage of imperial ateliers.',
       'code': ArtefactType.neck,
       'bg': Color(0xFFF3E3C4),
+      'image': 'assets/images/hero_mysore_durbar.jpg',
+      'fallbackCode': 'neck',
     },
     {
       'country': 'China',
-      'title': 'Imperial Court Traditions',
+      'title': 'Forbidden City Imperial Court Traditions',
       'desc':
-          'Court robes, jade ornaments, and celestial porcelain tied to documented imperial kilns of Jingdezhen, representing sovereign celestial authority.',
+          'Embroidered nine-dragon court robes, carved lacquerware, jade ornaments, and celestial cobalt porcelain from the imperial kilns of Jingdezhen.',
       'code': ArtefactType.vase,
       'bg': Color(0xFFE6EDF4),
+      'image': 'assets/images/hero_forbidden_city.jpg',
+      'fallbackCode': 'vase',
     },
     {
       'country': 'Korea',
-      'title': 'Joseon Palace Heritage',
+      'title': 'Joseon Palace Royal Heritage',
       'desc':
-          'Sacred court clothing, silver hairpins, and ceremonial accessories inspired by Joseon-era royal dress codes preserved through state archives.',
+          'Sacred ceremonial court wonsam, jade norigae, and mother-of-pearl royal lacquerware inspired by court dress codes preserved in state archives.',
       'code': ArtefactType.robe,
       'bg': Color(0xFFE9E0F3),
+      'image': 'assets/images/prod_korean_wonsam.jpg',
+      'fallbackCode': 'robe',
     },
     {
       'country': 'Europe',
-      'title': 'Courts and Coronations',
+      'title': 'Grand Courts and Royal Coronations',
       'desc':
-          'Coronation diadems, court gowns, hand-chased silver and gilded palace furniture, each carrying authenticated provenance from European royal dynasties.',
+          'Imperial crowns, Sèvres royal dining porcelain, water-gilded console furniture, and haute couture court gowns from European royal houses.',
       'code': ArtefactType.crown,
       'bg': Color(0xFFF6DCD5),
+      'image': 'assets/images/hero_versailles_hall.jpg',
+      'fallbackCode': 'crown',
     },
     {
       'country': 'Persia & Ottoman',
-      'title': 'Metalwork, Inlay and Carpets',
+      'title': 'Imperial Inlay, Velvet and Safavid Silk',
       'desc':
-          'Master khatam marquetry caskets, gold-damascened steel blades, and ceremonial textiles from documented royal guild workshops.',
+          'Master khatam marquetry caskets of Isfahan, Bursa voided silk velvets, and hand-knotted imperial Kashan silk carpets.',
       'code': ArtefactType.box,
       'bg': Color(0xFFEFE0CC),
+      'image': 'assets/images/prod_khatam_box.jpg',
+      'fallbackCode': 'box',
+    },
+    {
+      'country': 'Japan',
+      'title': 'Heian & Edo Court Masterpieces',
+      'desc':
+          'Gold and silver maki-e urushi lacquerware, silk ceremonial kimono with plum blossom embroidery, and imperial folding fans.',
+      'code': ArtefactType.fan,
+      'bg': Color(0xFFF7EBE2),
+      'image': 'assets/images/prod_japan_makie.jpg',
+      'fallbackCode': 'fan',
+    },
+    {
+      'country': 'Africa',
+      'title': 'Kingdom of Benin & Asante Sovereign Regalia',
+      'desc':
+          'Documented lost-wax relief brass court plaques with coral regalia, and Asante lost-wax solid river gold lion emblems of sacred kingship.',
+      'code': ArtefactType.crown,
+      'bg': Color(0xFFEAE3D6),
+      'image': 'assets/images/prod_benin_bronze.jpg',
+      'fallbackCode': 'crown',
     },
     {
       'country': 'The Americas',
-      'title': 'Pre-Columbian Leadership Regalia',
+      'title': 'Pre-Columbian Sovereign Gold Regalia',
       'desc':
-          'Sacred repoussé Andean sheet gold, featherwork, and hereditary leadership ornaments researched with strict cultural provenance and export legality.',
+          'Sacred repoussé Chimú native Andean sheet gold sun plaques and ceremonial beakers excavated and preserved with verified cultural provenance.',
       'code': ArtefactType.crown,
       'bg': Color(0xFFE3EBDE),
+      'image': 'assets/images/prod_chimu_gold.jpg',
+      'fallbackCode': 'crown',
+    },
+    {
+      'country': 'Southeast Asia',
+      'title': 'Royal Songket & Court Regalia',
+      'desc':
+          'Supplementary pure gold thread songket textiles of the Palembang Sultanate and ceremonial palace regalia preserved across Southeast Asian courts.',
+      'code': ArtefactType.robe,
+      'bg': Color(0xFFEFE6D8),
+      'image': 'assets/images/prod_songket_palembang.jpg',
+      'fallbackCode': 'robe',
+    },
+    {
+      'country': 'Central Asia',
+      'title': 'Silk Road Suzani & Royal Canopies',
+      'desc':
+          'Hand-embroidered Samarkand and Bukhara suzani wall canopies dyed with madder root and pomegranate rinds, capturing solar rosettes.',
+      'code': ArtefactType.chair,
+      'bg': Color(0xFFEBE0D2),
+      'image': 'assets/images/prod_suzani_silk.jpg',
+      'fallbackCode': 'chair',
     },
   ];
 
@@ -606,7 +661,7 @@ class _LandingPageState extends ConsumerState<LandingPage>
 
             // Rotating Showcase Artefact with 3D Sway Animation
             Positioned(
-              bottom: 90,
+              bottom: 85,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 1200),
                 transitionBuilder: (child, anim) {
@@ -621,29 +676,65 @@ class _LandingPageState extends ConsumerState<LandingPage>
                 child: KeyedSubtree(
                   key: ValueKey<int>(_curShowcase),
                   child: SwayingObject(
-                    child: ArtefactArt(
-                      type: curItem[0] as ArtefactType,
-                      size: height > 400 ? 250 : 200,
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: height > 400 ? 255 : 200,
+                        maxWidth: 280,
+                      ),
+                      child: Center(
+                        child: OriginHeritageImage(
+                          localAssetPath: curItem.length > 2 ? curItem[2] as String : null,
+                          artefactCode: (curItem[0] as ArtefactType).name,
+                          fit: BoxFit.contain,
+                          height: height > 400 ? 250 : 195,
+                          semanticLabel: curItem[1] as String,
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
 
-            // Caption
+            // Caption with provenance icon
             Positioned(
-              bottom: 38,
+              bottom: 34,
               left: 20,
               right: 20,
-              child: Text(
-                curItem[1] as String,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.montserrat(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.4,
-                  color: const Color(0xFF6B5330),
-                ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(
+                    child: Text(
+                      curItem[1] as String,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.3,
+                        color: const Color(0xFF6B5330),
+                      ),
+                    ),
+                  ),
+                  if (curItem.length > 3) ...[
+                    const SizedBox(width: 6),
+                    InkWell(
+                      onTap: () => showImageCreditDialog(
+                        context,
+                        imageSourceId: curItem[3] as String,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      child: const Padding(
+                        padding: EdgeInsets.all(2),
+                        child: Icon(
+                          Icons.info_outline,
+                          size: 13,
+                          color: OriginColors.goldDark,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -1080,13 +1171,21 @@ class _LandingPageState extends ConsumerState<LandingPage>
                         ),
                       ),
                       const SizedBox(height: 14),
-                      Text(
-                        'Illustrative artwork. Final pages credit museum and royal archive collections.',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11.5,
-                          color: OriginColors.inkMuted,
-                          fontStyle: FontStyle.italic,
-                        ),
+                      Row(
+                        children: [
+                          const Icon(Icons.verified, size: 13, color: OriginColors.goldDark),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Verified historical artefacts & museum archive provenance',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 11.5,
+                                color: OriginColors.goldDark,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 24),
                       OriginButton(
@@ -1101,15 +1200,57 @@ class _LandingPageState extends ConsumerState<LandingPage>
                   );
 
                   final artCol = Container(
-                    height: 240,
+                    height: 260,
                     decoration: BoxDecoration(
                       color: curCiv['bg'] as Color,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: OriginColors.gold.withValues(alpha: 0.5)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1A000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
                     ),
-                    alignment: Alignment.center,
-                    child: ArtefactArt(
-                      type: curCiv['code'] as ArtefactType,
-                      size: 150,
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        OriginHeritageImage(
+                          localAssetPath: curCiv['image'] as String?,
+                          artefactCode: curCiv['fallbackCode'] as String?,
+                          fit: BoxFit.cover,
+                          semanticLabel: curCiv['title'] as String?,
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withValues(alpha: 0.4),
+                              ],
+                              stops: const [0.65, 1.0],
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 12,
+                          left: 14,
+                          right: 14,
+                          child: Text(
+                            'AUTHENTIC ARCHIVAL SPECIMEN · ${curCiv['country'].toString().toUpperCase()}',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.2,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   );
 
@@ -1285,24 +1426,6 @@ class _CollectionCard extends StatefulWidget {
 class _CollectionCardState extends State<_CollectionCard> {
   bool _hovered = false;
 
-  ArtefactType _getArtefactType(String code) {
-    switch (code) {
-      case 'neck':
-        return ArtefactType.neck;
-      case 'robe':
-        return ArtefactType.robe;
-      case 'fan':
-        return ArtefactType.fan;
-      case 'chair':
-        return ArtefactType.chair;
-      case 'vase':
-        return ArtefactType.vase;
-      case 'box':
-        return ArtefactType.box;
-      default:
-        return ArtefactType.lotus;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -1334,17 +1457,40 @@ class _CollectionCardState extends State<_CollectionCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Pastel Art Panel
+              // Photographic Art Panel with smooth hover scale
               Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: widget.category.bgColor as Color,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                  ),
-                  alignment: Alignment.center,
-                  child: ArtefactArt(
-                    type: _getArtefactType(widget.category.artefactCode as String),
-                    size: 130,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Container(color: widget.category.bgColor as Color),
+                      AnimatedScale(
+                        scale: _hovered ? 1.06 : 1.0,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOutCubic,
+                        child: OriginHeritageImage(
+                          localAssetPath: widget.category.localAssetPath as String?,
+                          networkUrl: widget.category.imageUrl as String?,
+                          artefactCode: widget.category.artefactCode as String?,
+                          fit: BoxFit.cover,
+                          semanticLabel: widget.category.name as String?,
+                        ),
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withValues(alpha: 0.28),
+                            ],
+                            stops: const [0.65, 1.0],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
