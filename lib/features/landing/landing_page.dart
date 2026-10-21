@@ -20,6 +20,7 @@ import '../../data/models/product.dart';
 import '../../data/repositories/product_repository.dart';
 import '../auth/auth_controller.dart';
 import '../auth/auth_dialog.dart';
+import 'origin_cinematic_section.dart';
 
 class LandingPage extends ConsumerStatefulWidget {
   const LandingPage({super.key});
@@ -298,8 +299,13 @@ class _LandingPageState extends ConsumerState<LandingPage>
               SliverToBoxAdapter(
                 child: Column(
                   children: [
-                    // C. HERO SECTION
+                    // C. HERO SECTION (Preserved)
                     _buildHeroSection(isMobile),
+
+                    const SizedBox(height: 50),
+
+                    // CINEMATIC SCROLL EXPERIENCE & COLLECTION SECTION
+                    OriginCinematicSection(scrollController: _scrollController),
 
                     const SizedBox(height: 70),
 
