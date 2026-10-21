@@ -222,67 +222,156 @@ class OriginHeader extends ConsumerWidget implements PreferredSizeWidget {
   void _showMobileMenu(BuildContext context, WidgetRef ref) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: OriginColors.ivoryLight,
+      backgroundColor: const Color(0xFFFAF8F3),
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
         final auth = ref.watch(authControllerProvider);
+        final currency = ref.watch(currencyProvider);
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: OriginColors.gold,
-                      borderRadius: BorderRadius.circular(2),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: OriginColors.gold.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-                _MobileNavLink(label: 'Home', path: '/', icon: Icons.home_outlined),
-                _MobileNavLink(label: 'Shop & Collections', path: '/shop', icon: Icons.grid_view),
-                _MobileNavLink(label: 'Heritage Journal', path: '/journal', icon: Icons.auto_stories_outlined),
-                _MobileNavLink(label: 'Authenticity & Provenance', path: '/authenticity', icon: Icons.verified_outlined),
-                _MobileNavLink(label: 'About ORIGIN', path: '/about', icon: Icons.info_outline),
-                if (auth.isAdmin)
-                  _MobileNavLink(label: 'Admin Panel', path: '/admin', icon: Icons.admin_panel_settings_outlined),
-                const Divider(height: 24),
-                if (auth.isSignedIn) ...[
-                  ListTile(
-                    leading: const Icon(Icons.account_circle_outlined, color: OriginColors.goldDark),
-                    title: Text('My Account (${auth.user?.name})'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      context.go('/account');
-                    },
+                  const SizedBox(height: 18),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CustomPaint(
+                          painter: LotusPainter(
+                            progress: 1.0,
+                            strokeWidth: 1.6,
+                            color: OriginColors.goldDark,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'ORIGIN REPERTORY',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2.4,
+                          color: OriginColors.goldDark,
+                        ),
+                      ),
+                    ],
                   ),
-                  ListTile(
-                    leading: const Icon(Icons.logout, color: OriginColors.inkMuted),
-                    title: const Text('Sign Out'),
-                    onTap: () {
-                      ref.read(authControllerProvider.notifier).logout();
-                      Navigator.pop(ctx);
-                      showOriginToast(context, 'Signed out');
-                    },
+                  const SizedBox(height: 18),
+                  const Divider(color: Color(0x28D4AF7C), height: 1),
+                  const SizedBox(height: 10),
+                  _MobileNavLink(label: 'Home', path: '/', icon: Icons.home_outlined),
+                  _MobileNavLink(label: 'Shop & Collections', path: '/shop', icon: Icons.grid_view),
+                  _MobileNavLink(label: 'Heritage Journal', path: '/journal', icon: Icons.auto_stories_outlined),
+                  _MobileNavLink(label: 'Authenticity & Provenance', path: '/authenticity', icon: Icons.verified_outlined),
+                  _MobileNavLink(label: 'About ORIGIN', path: '/about', icon: Icons.info_outline),
+                  if (auth.isAdmin)
+                    _MobileNavLink(label: 'Admin Panel', path: '/admin', icon: Icons.admin_panel_settings_outlined),
+                  const SizedBox(height: 10),
+                  const Divider(color: Color(0x28D4AF7C), height: 1),
+                  const SizedBox(height: 12),
+                  // Mobile Currency Switcher Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'CURRENCY PREFERENCE',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.4,
+                            color: OriginColors.inkLight,
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () {
+                            ref.read(currencyProvider.notifier).toggleCurrency();
+                            Navigator.pop(ctx);
+                            showOriginToast(
+                              context,
+                              'Currency switched to ${currency == Currency.usd ? "INR (₹)" : "USD (\$)"}',
+                            );
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(color: OriginColors.goldDark),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                            child: Text(
+                              currency == Currency.usd ? 'USD (\$)' : 'INR (₹)',
+                              style: GoogleFonts.montserrat(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: OriginColors.goldDark,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ] else ...[
-                  ListTile(
-                    leading: const Icon(Icons.login, color: OriginColors.goldDark),
-                    title: const Text('Register / Sign In'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      showAuthDialog(context, reason: 'Welcome to ORIGIN.');
-                    },
-                  ),
+                  const Divider(color: Color(0x28D4AF7C), height: 1),
+                  const SizedBox(height: 8),
+                  if (auth.isSignedIn) ...[
+                    ListTile(
+                      leading: const Icon(Icons.account_circle_outlined, color: OriginColors.goldDark),
+                      title: Text(
+                        'My Account (${auth.user?.name})',
+                        style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w500),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        context.go('/account');
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.logout, color: OriginColors.inkMuted),
+                      title: Text(
+                        'Sign Out',
+                        style: GoogleFonts.montserrat(fontSize: 13.5, color: OriginColors.inkMuted),
+                      ),
+                      onTap: () {
+                        ref.read(authControllerProvider.notifier).logout();
+                        Navigator.pop(ctx);
+                        showOriginToast(context, 'Signed out');
+                      },
+                    ),
+                  ] else ...[
+                    ListTile(
+                      leading: const Icon(Icons.login, color: OriginColors.goldDark),
+                      title: Text(
+                        'Sign In / Register',
+                        style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w600, color: OriginColors.goldDark),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        showAuthDialog(context, reason: 'Welcome to ORIGIN.');
+                      },
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
@@ -328,19 +417,22 @@ class _NavLinkState extends State<_NavLink> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                widget.label,
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
                 style: GoogleFonts.montserrat(
                   fontSize: 13,
+                  letterSpacing: 0.8,
                   fontWeight: widget.isSelected || widget.isAccent ? FontWeight.w600 : FontWeight.w500,
                   color: color,
                 ),
+                child: Text(widget.label),
               ),
               const SizedBox(height: 4),
               AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
                 height: 2,
-                width: widget.isSelected || _hovered ? 20 : 0,
+                width: widget.isSelected || _hovered ? 24 : 0,
                 color: OriginColors.goldDark,
               ),
             ],
@@ -369,7 +461,7 @@ class _MobileNavLink extends StatelessWidget {
       title: Text(
         label,
         style: GoogleFonts.montserrat(
-          fontSize: 14,
+          fontSize: 13.5,
           fontWeight: FontWeight.w500,
           color: OriginColors.ink,
         ),

@@ -97,14 +97,29 @@ class _OriginButtonState extends State<OriginButton> {
       child: GestureDetector(
         onTap: widget.isLoading ? null : widget.onPressed,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.translationValues(
+            0,
+            _isHovered && widget.onPressed != null && !widget.isLoading ? -1.5 : 0,
+            0,
+          ),
           width: widget.isFullWidth ? double.infinity : null,
           padding: widget.padding ??
               const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
           decoration: BoxDecoration(
             color: bg,
             border: border,
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(3),
+            boxShadow: _isHovered && widget.variant == OriginButtonVariant.filled && widget.onPressed != null
+                ? const [
+                    BoxShadow(
+                      color: Color(0x3D7D5C2F),
+                      blurRadius: 16,
+                      offset: Offset(0, 5),
+                    ),
+                  ]
+                : null,
           ),
           alignment: Alignment.center,
           child: content,

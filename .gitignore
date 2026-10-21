@@ -50,3 +50,10 @@ app.*.map.json
 # Vercel & CI
 _flutter/
 .vercel/
+
+# Node.js & Secrets
+node_modules/
+.env
+.env.local
+.env.*.local
+npm-debug.log*

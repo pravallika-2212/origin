@@ -66,26 +66,7 @@ class _ProductCardState extends ConsumerState<ProductCard>
 
   Color _getCardColor() {
     if (widget.bgColor != null) return widget.bgColor!;
-    switch (widget.product.artefactCode) {
-      case 'neck':
-        return const Color(0xFFF3E3C4);
-      case 'crown':
-        return const Color(0xFFF6DCD5);
-      case 'vase':
-        return const Color(0xFFE6EDF4);
-      case 'robe':
-        return const Color(0xFFE9E0F3);
-      case 'fan':
-        return const Color(0xFFF6DCD5);
-      case 'box':
-        return const Color(0xFFEFE0CC);
-      case 'chair':
-        return const Color(0xFFE3EBDE);
-      case 'ear':
-        return const Color(0xFFF3E8D2);
-      default:
-        return const Color(0xFFF8F1E4);
-    }
+    return const Color(0xFFF8F5EE);
   }
 
   Future<void> _toggleWishlist() async {
@@ -144,23 +125,23 @@ class _ProductCardState extends ConsumerState<ProductCard>
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
+        transform: Matrix4.translationValues(0, _isHovered ? -5 : 0, 0),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(3),
           border: Border.all(
-            color: _isHovered ? OriginColors.gold : OriginColors.cardBorder,
+            color: _isHovered ? OriginColors.goldDark : const Color(0x38D4AF7C),
             width: 1,
           ),
           boxShadow: [
             BoxShadow(
               color: _isHovered
-                  ? const Color(0x2E785A28)
+                  ? const Color(0x24785A28)
                   : const Color(0x0A000000),
-              blurRadius: _isHovered ? 26 : 10,
-              offset: Offset(0, _isHovered ? 12 : 4),
+              blurRadius: _isHovered ? 24 : 8,
+              offset: Offset(0, _isHovered ? 10 : 3),
             ),
           ],
         ),
@@ -173,20 +154,23 @@ class _ProductCardState extends ConsumerState<ProductCard>
                 GestureDetector(
                   onTap: () => context.go('/product/${widget.product.id}'),
                   child: Container(
-                    height: 195,
+                    height: 205,
                     decoration: BoxDecoration(
                       color: _getCardColor(),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+                      border: const Border(
+                        bottom: BorderSide(color: Color(0x1AD4AF7C), width: 1),
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: Hero(
                       tag: 'product-${widget.product.id}',
                       child: AnimatedScale(
                         scale: _isHovered ? 1.05 : 1.0,
-                        duration: const Duration(milliseconds: 280),
+                        duration: const Duration(milliseconds: 260),
                         curve: Curves.easeOutCubic,
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(16),
                           child: OriginHeritageImage(
                             localAssetPath: widget.product.localAssetPath ??
                                 (widget.product.images.isNotEmpty &&
@@ -199,7 +183,7 @@ class _ProductCardState extends ConsumerState<ProductCard>
                                 : null,
                             artefactCode: widget.product.artefactCode,
                             fit: BoxFit.contain,
-                            height: 170,
+                            height: 175,
                             semanticLabel: widget.product.name,
                           ),
                         ),
@@ -213,27 +197,33 @@ class _ProductCardState extends ConsumerState<ProductCard>
                   top: 10,
                   left: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: isAntique
-                          ? OriginColors.royalBronze
-                          : OriginColors.sage,
+                          ? const Color(0xFF2E2214)
+                          : const Color(0xFF4A443C),
                       borderRadius: BorderRadius.circular(2),
+                      border: Border.all(
+                        color: isAntique
+                            ? const Color(0x80D4AF7C)
+                            : const Color(0x40E8DCC7),
+                        width: 1,
+                      ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (isAntique) ...[
-                          const Icon(Icons.verified, size: 11, color: OriginColors.goldLight),
+                          const Icon(Icons.verified, size: 10.5, color: OriginColors.goldLight),
                           const SizedBox(width: 4),
                         ],
                         Text(
-                          widget.product.typeLabel.toUpperCase(),
+                          isAntique ? 'CERTIFIED ANTIQUE' : 'ROYAL REPERTORY',
                           style: GoogleFonts.montserrat(
-                            fontSize: 9,
+                            fontSize: 8.5,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
-                            color: Colors.white,
+                            color: isAntique ? OriginColors.goldLight : const Color(0xFFEFE9DA),
                           ),
                         ),
                       ],
@@ -251,14 +241,15 @@ class _ProductCardState extends ConsumerState<ProductCard>
                       onTap: _toggleWishlist,
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        width: 34,
-                        height: 34,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.9),
+                          color: Colors.white.withValues(alpha: 0.94),
                           shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0x38D4AF7C)),
                           boxShadow: const [
                             BoxShadow(
-                              color: Color(0x1F000000),
+                              color: Color(0x14000000),
                               blurRadius: 6,
                               offset: Offset(0, 2),
                             ),
@@ -266,8 +257,8 @@ class _ProductCardState extends ConsumerState<ProductCard>
                         ),
                         child: Icon(
                           isWishlisted ? Icons.favorite : Icons.favorite_border,
-                          size: 18,
-                          color: isWishlisted ? OriginColors.goldDark : OriginColors.goldDark,
+                          size: 16.5,
+                          color: isWishlisted ? OriginColors.goldDark : const Color(0xFF8A7E70),
                         ),
                       ),
                     ),
@@ -327,30 +318,32 @@ class _ProductCardState extends ConsumerState<ProductCard>
                   // Action Buttons Row
                   Row(
                     children: [
-                      // Add to Cart
+                      // Acquire / Add to Bag
                       Expanded(
                         child: InkWell(
                           onTap: _addToCart,
                           child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 250),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 9.5),
                             decoration: BoxDecoration(
                               color: _isFlashingGold
-                                  ? OriginColors.gold
-                                  : Colors.transparent,
+                                  ? OriginColors.goldDark
+                                  : (_isHovered
+                                      ? OriginColors.gold.withValues(alpha: 0.12)
+                                      : Colors.transparent),
                               border: Border.all(
                                 color: OriginColors.goldDark,
                                 width: 1,
                               ),
-                              borderRadius: BorderRadius.circular(3),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                             alignment: Alignment.center,
                             child: Text(
-                              _isFlashingGold ? 'ADDED!' : 'ADD TO CART',
+                              _isFlashingGold ? 'ADDED TO BAG' : 'ACQUIRE PIECE',
                               style: GoogleFonts.montserrat(
-                                fontSize: 11,
+                                fontSize: 10.5,
                                 fontWeight: FontWeight.w600,
-                                letterSpacing: 1.6,
+                                letterSpacing: 1.5,
                                 color: _isFlashingGold
                                     ? Colors.white
                                     : OriginColors.goldDark,

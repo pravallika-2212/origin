@@ -5,12 +5,16 @@ class OriginColors {
   static const ivory = Color(0xFFF8F6EF);
   static const ivoryLight = Color(0xFFFFFDF8);
   static const ivoryDark = Color(0xFFEFE9DA);
+  static const galleryStone = Color(0xFFF5F1E8);
+  static const charcoal = Color(0xFF141210);
+  static const charcoalSoft = Color(0xFF221F1C);
   static const gold = Color(0xFFD4AF7C);
   static const goldLight = Color(0xFFF1DCAE);
   static const goldDark = Color(0xFF9A7440);
   static const royalBronze = Color(0xFF5B4120);
+  static const burgundy = Color(0xFF4A121D);
   static const sage = Color(0xFF8CA68B);
-  static const sageLight = Color(0xFFDFE6D9);
+  static const sageLight = Color(0xFFEFE9DA);
   static const blush = Color(0xFFEBC9C1);
   static const blushLight = Color(0xFFF6DCD5);
   static const lavender = Color(0xFFC9B8E4);
@@ -18,7 +22,7 @@ class OriginColors {
   static const ink = Color(0xFF2E2E2E);
   static const inkLight = Color(0xFF5C5448);
   static const inkMuted = Color(0xFF7A7060);
-  static const cardBorder = Color(0x59D4AF7C); // rgba(212,175,124, 0.35)
+  static const cardBorder = Color(0x40D4AF7C); // rgba(212,175,124, 0.25)
 }
 
 ThemeData originTheme() {

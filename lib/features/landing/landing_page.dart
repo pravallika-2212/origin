@@ -1355,10 +1355,26 @@ class _LandingPageState extends ConsumerState<LandingPage>
   // J. TRUST STRIP
   Widget _buildTrustStrip(bool isMobile) {
     final trustItems = [
-      {'title': 'Worldwide Shipping', 'sub': 'To your palace doorstep'},
-      {'title': 'Secure Payments', 'sub': 'Fully encrypted & audited'},
-      {'title': 'Easy Returns', 'sub': '14-day insured guarantee'},
-      {'title': 'Royal Concierge', 'sub': 'Dedicated heritage advisors'},
+      {
+        'icon': Icons.local_shipping_outlined,
+        'title': 'White-Glove Art Transport',
+        'sub': 'Armored diplomatic courier with export permit handling',
+      },
+      {
+        'icon': Icons.security_outlined,
+        'title': 'Escrow & Razorpay Security',
+        'sub': 'Encrypted bank-grade settlement with instant verification',
+      },
+      {
+        'icon': Icons.verified_outlined,
+        'title': 'Archival Provenance Guarantee',
+        'sub': 'Full metallurgical & radiocarbon certificate registry',
+      },
+      {
+        'icon': Icons.meeting_room_outlined,
+        'title': 'Private Salon Viewing',
+        'sub': 'Curated in-person inspection at partner vault salons',
+      },
     ];
 
     return Container(
@@ -1370,6 +1386,9 @@ class _LandingPageState extends ConsumerState<LandingPage>
           if (constraints.maxWidth < 950) {
             cols = 2;
           }
+          if (constraints.maxWidth < 600) {
+            cols = 1;
+          }
 
           return GridView.builder(
             shrinkWrap: true,
@@ -1377,7 +1396,7 @@ class _LandingPageState extends ConsumerState<LandingPage>
             itemCount: trustItems.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: cols,
-              childAspectRatio: cols == 4 ? 3.2 : 2.8,
+              childAspectRatio: cols == 4 ? 2.6 : (cols == 2 ? 2.8 : 3.4),
               crossAxisSpacing: 16,
               mainAxisSpacing: 12,
             ),
@@ -1385,26 +1404,37 @@ class _LandingPageState extends ConsumerState<LandingPage>
               final t = trustItems[idx];
               return Container(
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF8F3),
+                  borderRadius: BorderRadius.circular(3),
+                  border: Border.all(color: const Color(0x38D4AF7C)),
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Icon(t['icon'] as IconData, size: 20, color: OriginColors.goldDark),
+                    const SizedBox(height: 5),
                     Text(
-                      t['title']!,
+                      t['title'] as String,
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.montserrat(
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: OriginColors.ink,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
-                      t['sub']!,
+                      t['sub'] as String,
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.montserrat(
-                        fontSize: 11.5,
+                        fontSize: 10.5,
                         color: OriginColors.inkMuted,
                       ),
                     ),

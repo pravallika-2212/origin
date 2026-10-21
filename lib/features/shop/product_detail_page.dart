@@ -981,23 +981,35 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
         ),
         const SizedBox(height: 16),
 
-        // Price & Currency Toggle
-        Row(
+        // Price & Logistics Badge
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          runSpacing: 8,
           children: [
             Text(
               OriginFormatters.formatPrice(product.priceUsd, currency),
-              style: GoogleFonts.montserrat(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
                 color: OriginColors.royalBronze,
               ),
             ),
-            const SizedBox(width: 14),
-            Text(
-              'Duty & Armored Insurance Included',
-              style: GoogleFonts.montserrat(
-                fontSize: 11.5,
-                color: OriginColors.inkMuted,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4EFE6),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(color: const Color(0x38D4AF7C)),
+              ),
+              child: Text(
+                'ARMORED TRANSPORT & INSURANCE INCLUDED',
+                style: GoogleFonts.montserrat(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                  color: OriginColors.goldDark,
+                ),
               ),
             ),
           ],
@@ -1006,10 +1018,10 @@ class _ProductDetailPageState extends ConsumerState<ProductDetailPage> {
 
         // Specification Specifications Box
         Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: OriginColors.cardBorder),
+            color: const Color(0xFFFAF8F3),
+            border: Border.all(color: const Color(0x38D4AF7C)),
             borderRadius: BorderRadius.circular(4),
           ),
           child: Column(

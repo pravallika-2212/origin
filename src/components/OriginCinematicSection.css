@@ -43,6 +43,7 @@
   overflow: hidden;
   background: var(--origin-charcoal);
   color: var(--origin-ivory);
+  contain: paint layout;
 }
 
 /* Background Atmosphere */
@@ -71,14 +72,13 @@
   position: absolute;
   left: 50%;
   top: 54%;
-  width: 150vmax;
-  height: 150vmax;
+  width: min(85vmax, 750px);
+  height: min(85vmax, 750px);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(212, 98, 42, 0.52), rgba(212, 98, 42, 0.16) 30%, transparent 58%);
+  background: radial-gradient(circle, rgba(212, 98, 42, 0.45), rgba(212, 98, 42, 0.12) 36%, transparent 64%);
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.05);
   will-change: opacity, transform;
-  mix-blend-mode: screen;
   pointer-events: none;
 }
 
@@ -174,8 +174,8 @@
   width: min(44vh, 36vw, 420px);
   aspect-ratio: 4/5;
   position: relative;
-  will-change: transform, opacity, clip-path;
-  filter: drop-shadow(0 20px 30px rgba(0, 0, 0, 0.65));
+  will-change: transform, opacity;
+  filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.55));
 }
 
 .origin-cinematic-figure img {

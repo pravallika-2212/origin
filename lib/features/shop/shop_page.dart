@@ -80,19 +80,11 @@ class _ShopPageState extends ConsumerState<ShopPage> {
             // Page Header Banner
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: isMobile ? 44 : 56),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFF3E8D6),
-                    OriginColors.ivory,
-                    Color(0xFFEDE0D1),
-                  ],
-                ),
+                color: Color(0xFFFAF7F0),
                 border: Border(
-                  bottom: BorderSide(color: OriginColors.cardBorder),
+                  bottom: BorderSide(color: Color(0x38D4AF7C), width: 1),
                 ),
               ),
               child: Center(
@@ -100,29 +92,39 @@ class _ShopPageState extends ConsumerState<ShopPage> {
                   constraints: const BoxConstraints(maxWidth: Breakpoints.maxContentWidth),
                   child: Column(
                     children: [
-                      Text(
-                        'THE ROYAL REPOSITORY',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 3,
-                          color: OriginColors.goldDark,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(width: 24, height: 1, color: OriginColors.goldDark),
+                          const SizedBox(width: 12),
+                          Text(
+                            'THE IMPERIAL CATALOGUE · SOVEREIGN ARCHIVES',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 2.8,
+                              color: OriginColors.goldDark,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(width: 24, height: 1, color: OriginColors.goldDark),
+                        ],
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Text(
-                        'Treasures & Heirloom Regalia',
+                        'The Curated Repository',
                         style: GoogleFonts.playfairDisplay(
-                          fontSize: isMobile ? 32 : 44,
+                          fontSize: isMobile ? 32 : 46,
                           fontWeight: FontWeight.w400,
+                          letterSpacing: 1.0,
                           color: OriginColors.royalBronze,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
                       Container(
-                        constraints: const BoxConstraints(maxWidth: 580),
+                        constraints: const BoxConstraints(maxWidth: 620),
                         child: Text(
-                          'Browse certified imperial antiques and royal-inspired jewelry, garments, tableware, and living heirlooms from sovereign traditions worldwide.',
+                          'Certified imperial antiquities, fine ceremonial jewelry, court textiles, and historical tableware curated from sovereign dynasties across the globe.',
                           textAlign: TextAlign.center,
                           style: GoogleFonts.montserrat(
                             fontSize: 13.5,

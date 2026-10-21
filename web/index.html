@@ -25,6 +25,64 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body style="background-color: #F8F6EF;">
+  <!-- Razorpay Checkout v1 -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- ORIGIN Razorpay Web Bridge -->
+  <script>
+    window.OriginRazorpayBridge = {
+      isAvailable: function() {
+        return typeof window.Razorpay === 'function';
+      },
+      openCheckout: function(options, onSuccess, onFailure, onDismiss) {
+        try {
+          if (typeof window.Razorpay !== 'function') {
+            if (onFailure) onFailure(JSON.stringify({ description: 'Razorpay checkout script not available. Please check internet connection or ad-blocker.' }));
+            return;
+          }
+
+          var parsedOptions = typeof options === 'string' ? JSON.parse(options) : options;
+          var rzpOptions = Object.assign({}, parsedOptions);
+
+          rzpOptions.handler = function(response) {
+            if (onSuccess) {
+              onSuccess(JSON.stringify(response));
+            }
+          };
+
+          rzpOptions.modal = rzpOptions.modal || {};
+          rzpOptions.modal.ondismiss = function() {
+            if (onDismiss) {
+              onDismiss();
+            }
+          };
+
+          var rzp = new window.Razorpay(rzpOptions);
+
+          rzp.on('payment.failed', function(resp) {
+            var err = resp.error || {};
+            if (onFailure) {
+              onFailure(JSON.stringify({
+                code: err.code || 'PAYMENT_FAILED',
+                description: err.description || 'Payment was declined by issuer.',
+                source: err.source,
+                step: err.step,
+                reason: err.reason
+              }));
+            }
+          });
+
+          rzp.open();
+        } catch (e) {
+          console.error('ORIGIN: Razorpay modal error:', e);
+          if (onFailure) {
+            onFailure(JSON.stringify({ description: e.message || 'Error opening payment window' }));
+          }
+        }
+      }
+    };
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

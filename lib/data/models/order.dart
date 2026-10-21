@@ -2,6 +2,8 @@ import 'product.dart';
 
 enum OrderStatus { placed, packed, shipped, delivered }
 
+enum OrderPaymentStatus { pending, paid, failed, cancelled }
+
 class OrderItem {
   const OrderItem({
     required this.product,
@@ -32,6 +34,13 @@ class OrderModel {
     required this.status,
     required this.createdAt,
     this.trackingNumber,
+    this.razorpayOrderId,
+    this.razorpayPaymentId,
+    this.paymentStatus = OrderPaymentStatus.pending,
+    this.customerName,
+    this.customerEmail,
+    this.customerPhone,
+    this.taxUsd = 0.0,
   });
 
   final String id;
@@ -48,6 +57,13 @@ class OrderModel {
   final OrderStatus status;
   final DateTime createdAt;
   final String? trackingNumber;
+  final String? razorpayOrderId;
+  final String? razorpayPaymentId;
+  final OrderPaymentStatus paymentStatus;
+  final String? customerName;
+  final String? customerEmail;
+  final String? customerPhone;
+  final double taxUsd;
 
   String get statusDisplay {
     switch (status) {
@@ -62,7 +78,30 @@ class OrderModel {
     }
   }
 
-  OrderModel copyWith({OrderStatus? status, String? trackingNumber}) {
+  String get paymentStatusDisplay {
+    switch (paymentStatus) {
+      case OrderPaymentStatus.paid:
+        return 'Settled & Verified';
+      case OrderPaymentStatus.pending:
+        return 'Settlement Pending';
+      case OrderPaymentStatus.failed:
+        return 'Settlement Failed';
+      case OrderPaymentStatus.cancelled:
+        return 'Settlement Cancelled';
+    }
+  }
+
+  OrderModel copyWith({
+    OrderStatus? status,
+    String? trackingNumber,
+    String? razorpayOrderId,
+    String? razorpayPaymentId,
+    OrderPaymentStatus? paymentStatus,
+    String? customerName,
+    String? customerEmail,
+    String? customerPhone,
+    double? taxUsd,
+  }) {
     return OrderModel(
       id: id,
       userId: userId,
@@ -78,6 +117,13 @@ class OrderModel {
       status: status ?? this.status,
       createdAt: createdAt,
       trackingNumber: trackingNumber ?? this.trackingNumber,
+      razorpayOrderId: razorpayOrderId ?? this.razorpayOrderId,
+      razorpayPaymentId: razorpayPaymentId ?? this.razorpayPaymentId,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      customerName: customerName ?? this.customerName,
+      customerEmail: customerEmail ?? this.customerEmail,
+      customerPhone: customerPhone ?? this.customerPhone,
+      taxUsd: taxUsd ?? this.taxUsd,
     );
   }
 }

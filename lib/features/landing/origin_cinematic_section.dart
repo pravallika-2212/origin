@@ -4,13 +4,16 @@ import 'package:go_router/go_router.dart';
 import '../../core/fonts.dart';
 import '../../core/utils/breakpoints.dart';
 
-/// ORIGIN Cinematic Scroll Section
-/// Recreates the interactive sequence from "ORIGIN_ cinematic sequence preview.html":
-/// - Sticky full-viewport cinematic stage inside a tall scroll track
-/// - Overlapping storytelling scenes driven by user scroll progress
-/// - Dynamic ember lighting, firelight sweep, and celestial golden ring animations
-/// - Authentic editorial museum photographs with elegant clip-path / scale transitions
-/// - Seamless fade into ORIGIN's refined light luxury collection section
+/// ORIGIN High-Performance Cinematic Scroll Experience
+/// 
+/// Performance Optimizations:
+/// 1. Zero setState() during scrolling: driven entirely by ValueNotifier and ListenableBuilders.
+/// 2. Elimination of renderBox.localToGlobal() calls on every scroll frame (cached track metrics).
+/// 3. Zero layout recalculations: sticky positioning uses Transform.translate (paint-only) instead of Positioned.top.
+/// 4. Decoupled collection section: built once and isolated with RepaintBoundary.
+/// 5. Offscreen clipping bypass: ClipPath / ClipRect is only active during the active reveal window (< 0.999).
+/// 6. Pre-cached museum heritage image assets to eliminate decoding hitches and frame drops.
+/// 7. Constrained GPU fill-rates for lighting sweeps and optimized Gaussian blur shadows.
 class OriginCinematicSection extends StatefulWidget {
   const OriginCinematicSection({
     super.key,
@@ -25,54 +28,85 @@ class OriginCinematicSection extends StatefulWidget {
 
 class _OriginCinematicSectionState extends State<OriginCinematicSection> {
   final GlobalKey _trackKey = GlobalKey();
-  double _progress = 0.0;
-  double _stickyOffset = 0.0;
-  bool _isNearViewport = false;
+  final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _stickyOffsetNotifier = ValueNotifier<double>(0.0);
+
+  double _trackScrollStart = -1.0;
+  double _cachedTrackHeight = 0.0;
+  bool _imagesPrecached = false;
 
   @override
   void initState() {
     super.initState();
     widget.scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _onScroll());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateTrackMetrics();
+      _onScroll();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_imagesPrecached) {
+      _imagesPrecached = true;
+      precacheImage(const AssetImage('assets/images/prod_austria_crown.jpg'), context);
+      precacheImage(const AssetImage('assets/images/prod_kundan_necklace.jpg'), context);
+      precacheImage(const AssetImage('assets/images/prod_korean_wonsam.jpg'), context);
+      precacheImage(const AssetImage('assets/images/prod_chimu_gold.jpg'), context);
+    }
   }
 
   @override
   void dispose() {
     widget.scrollController.removeListener(_onScroll);
+    _progressNotifier.dispose();
+    _stickyOffsetNotifier.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
+  void _updateTrackMetrics() {
     if (!mounted) return;
     final renderBox = _trackKey.currentContext?.findRenderObject() as RenderBox?;
     if (renderBox == null || !renderBox.hasSize) return;
 
-    final viewportHeight = MediaQuery.of(context).size.height;
-    final trackHeight = renderBox.size.height;
     final pos = renderBox.localToGlobal(Offset.zero);
-    final top = pos.dy;
-
-    // Check if track is within visible window
-    final isNear = (top < viewportHeight + 100) && (top + trackHeight > -100);
-    if (isNear != _isNearViewport) {
-      setState(() => _isNearViewport = isNear);
-    }
-    if (!isNear) return;
-
-    final maxScroll = trackHeight - viewportHeight;
-    if (maxScroll > 0) {
-      final p = ((-top) / maxScroll).clamp(0.0, 1.0);
-      final offset = (-top).clamp(0.0, maxScroll);
-      if ((p - _progress).abs() > 0.0005 || (_stickyOffset - offset).abs() > 0.5) {
-        setState(() {
-          _progress = p;
-          _stickyOffset = offset;
-        });
-      }
+    _cachedTrackHeight = renderBox.size.height;
+    if (widget.scrollController.hasClients) {
+      _trackScrollStart = widget.scrollController.offset + pos.dy;
+    } else {
+      _trackScrollStart = pos.dy;
     }
   }
 
-  // Smoothstep easing math identical to the prototype
+  void _onScroll() {
+    if (!mounted) return;
+    if (!widget.scrollController.hasClients) return;
+
+    final currentScroll = widget.scrollController.offset;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
+
+    if (_trackScrollStart < 0 || _cachedTrackHeight <= 0) {
+      _updateTrackMetrics();
+      if (_trackScrollStart < 0) return;
+    }
+
+    final maxScroll = _cachedTrackHeight - viewportHeight;
+    if (maxScroll <= 0) return;
+
+    final scrolledInTrack = currentScroll - _trackScrollStart;
+    final p = (scrolledInTrack / maxScroll).clamp(0.0, 1.0);
+    final offset = scrolledInTrack.clamp(0.0, maxScroll);
+
+    if ((p - _progressNotifier.value).abs() > 0.0001) {
+      _progressNotifier.value = p;
+    }
+    if ((offset - _stickyOffsetNotifier.value).abs() > 0.1) {
+      _stickyOffsetNotifier.value = offset;
+    }
+  }
+
+  // Smoothstep easing math
   static double _clamp(double x, [double a = 0.0, double b = 1.0]) {
     return x < a ? a : (x > b ? b : x);
   }
@@ -88,16 +122,19 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
 
   @override
   Widget build(BuildContext context) {
-    final viewportHeight = MediaQuery.of(context).size.height;
+    final viewportHeight = MediaQuery.sizeOf(context).height;
     final isReducedMotion = Breakpoints.isReducedMotion(context);
     final isMobile = Breakpoints.isMobile(context);
 
     // Height of scroll track (3.8x viewport on desktop, 3.2x on mobile)
     final trackHeight = isReducedMotion ? viewportHeight : viewportHeight * (isMobile ? 3.2 : 3.8);
 
+    // Schedule metrics update on layout / viewport dimension changes
+    WidgetsBinding.instance.addPostFrameCallback((_) => _updateTrackMetrics());
+
     return Column(
       children: [
-        // 1. TALL SCROLL TRACK WITH STICKY CINEMATIC STAGE
+        // 1. TALL SCROLL TRACK WITH SMOOTH TRANSFORM PINNING (Zero layout invalidation)
         SizedBox(
           key: _trackKey,
           height: trackHeight,
@@ -105,23 +142,50 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
             clipBehavior: Clip.none,
             children: [
               Positioned(
-                top: isReducedMotion ? 0 : _stickyOffset,
+                top: 0,
                 left: 0,
                 right: 0,
                 height: viewportHeight,
-                child: _buildCinematicStage(
-                  progress: isReducedMotion ? 0.75 : _progress,
-                  viewportHeight: viewportHeight,
-                  isMobile: isMobile,
-                  isReducedMotion: isReducedMotion,
-                ),
+                child: isReducedMotion
+                    ? RepaintBoundary(
+                        child: _buildCinematicStage(
+                          progress: 0.75,
+                          viewportHeight: viewportHeight,
+                          isMobile: isMobile,
+                          isReducedMotion: true,
+                        ),
+                      )
+                    : ValueListenableBuilder<double>(
+                        valueListenable: _stickyOffsetNotifier,
+                        builder: (context, stickyOffset, child) {
+                          return Transform.translate(
+                            offset: Offset(0, stickyOffset),
+                            child: child,
+                          );
+                        },
+                        child: RepaintBoundary(
+                          child: ValueListenableBuilder<double>(
+                            valueListenable: _progressNotifier,
+                            builder: (context, progress, _) {
+                              return _buildCinematicStage(
+                                progress: progress,
+                                viewportHeight: viewportHeight,
+                                isMobile: isMobile,
+                                isReducedMotion: false,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
               ),
             ],
           ),
         ),
 
-        // 2. CLOSING COLLECTION SECTION
-        _buildClosingCollectionSection(context, isMobile),
+        // 2. CLOSING COLLECTION SECTION (Isolated: never rebuilt or repainted during scroll sequence)
+        RepaintBoundary(
+          child: _buildClosingCollectionSection(context, isMobile),
+        ),
       ],
     );
   }
@@ -139,7 +203,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
     final emberScale = 1.0 + _ramp(p, 0.20, 0.55) * 0.40;
 
     final sweepProgress = _ramp(p, 0.18, 0.50);
-    final sweepOpacity = (math.sin(math.pi * sweepProgress) * 0.55).clamp(0.0, 1.0);
+    final sweepOpacity = (math.sin(math.pi * sweepProgress) * 0.52).clamp(0.0, 1.0);
     final sweepScale = 0.05 + sweepProgress * 0.95;
 
     final ringsAlpha = _ramp(p, 0.66, 0.82);
@@ -180,8 +244,8 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
                 child: Opacity(
                   opacity: emberOpacity,
                   child: Container(
-                    width: math.min(viewportHeight * 0.85, 600),
-                    height: math.min(viewportHeight * 0.85, 600),
+                    width: math.min(viewportHeight * 0.75, 520),
+                    height: math.min(viewportHeight * 0.75, 520),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
@@ -206,17 +270,17 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
                 child: Opacity(
                   opacity: sweepOpacity,
                   child: Container(
-                    width: viewportHeight * 1.4,
-                    height: viewportHeight * 1.4,
+                    width: math.min(viewportHeight * 1.0, 700),
+                    height: math.min(viewportHeight * 1.0, 700),
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          Color(0x80D4622A),
-                          Color(0x2ED4622A),
+                          Color(0x70D4622A),
+                          Color(0x24D4622A),
                           Colors.transparent,
                         ],
-                        stops: [0.0, 0.30, 0.58],
+                        stops: [0.0, 0.30, 0.60],
                       ),
                     ),
                   ),
@@ -251,7 +315,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
             imageSemanticLabel: 'Imperial Crown of Austria set with royal gemstones and pearl arches',
             imageCaption: 'Europe · Imperial Crown of Austria · Hofburg Vienna',
             reveal: 'iris',
-            win: const [0.0, 0.08, 0.20, 0.30],
+            win: const [0.0, 0.08, 0.22, 0.30],
             progress: p,
             isMobile: isMobile,
             isReducedMotion: isReducedMotion,
@@ -267,7 +331,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
             imageSemanticLabel: 'Mughal Kundan and Colombian emerald ceremonial royal necklace',
             imageCaption: 'India · Mughal Kundan & Emerald Necklace · The Met',
             reveal: 'rise',
-            win: const [0.20, 0.32, 0.46, 0.56],
+            win: const [0.22, 0.32, 0.46, 0.54],
             progress: p,
             isMobile: isMobile,
             isReducedMotion: isReducedMotion,
@@ -283,7 +347,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
             imageSemanticLabel: 'Joseon Dynasty royal court embroidered ceremonial wonsam robe',
             imageCaption: 'Korea · Joseon Royal Court Robe (Wonsam)',
             reveal: 'wipe',
-            win: const [0.46, 0.58, 0.70, 0.78],
+            win: const [0.46, 0.56, 0.68, 0.76],
             progress: p,
             isMobile: isMobile,
             isReducedMotion: isReducedMotion,
@@ -299,7 +363,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
             imageSemanticLabel: 'Pre-Columbian sovereign solid gold regalia sun plaque',
             imageCaption: 'The Americas · Sovereign Sun Plaque Regalia',
             reveal: 'iris',
-            win: const [0.68, 0.78, 0.88, 0.95],
+            win: const [0.68, 0.76, 0.88, 0.94],
             progress: p,
             isMobile: isMobile,
             isReducedMotion: isReducedMotion,
@@ -346,7 +410,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
             ),
           ),
 
-          // Final Ivory Fade Overlay (Hands off seamlessly to the light collection section)
+          // Final Ivory Fade Overlay (Seamless transition into the light collection section)
           if (ivoryFade > 0.001)
             Positioned.fill(
               child: IgnorePointer(
@@ -379,56 +443,65 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
     final o0 = win[2];
     final o1 = win[3];
 
-    final fadeIn = _ramp(progress, a0, a1);
+    // For the opening crown scene, ensure immediate clean visibility from progress = 0.0
+    final fadeIn = id == 'crown' && progress <= a1
+        ? (progress < a0 ? 1.0 : _ramp(progress, a0, a1).clamp(0.85, 1.0))
+        : _ramp(progress, a0, a1);
     final fadeOut = _ramp(progress, o0, o1);
-    final visibility = fadeIn - fadeOut;
 
-    if (visibility <= 0.001 && !isReducedMotion) {
+    // Visibility range with buffer to eliminate pop-ins
+    final isActive = isReducedMotion ||
+        (id == 'crown' && progress <= o1 + 0.02) ||
+        (progress >= a0 - 0.02 && progress <= o1 + 0.02);
+
+    if (!isActive && !isReducedMotion) {
       return const SizedBox.shrink();
     }
 
-    final sceneOpacity = isReducedMotion ? 1.0 : _clamp(fadeIn * 1.6) * (1.0 - fadeOut);
+    final sceneOpacity = isReducedMotion ? 1.0 : (_clamp(fadeIn * 1.5) * (1.0 - fadeOut)).clamp(0.0, 1.0);
     final par = isMobile ? 0.0 : 1.0;
-    final parallaxY = isReducedMotion ? 0.0 : (progress - 0.5) * -32.0 * par;
-    final imageScale = isReducedMotion ? 1.0 : (0.88 + 0.12 * fadeIn - 0.16 * fadeOut);
+    final parallaxY = isReducedMotion ? 0.0 : (progress - 0.5) * -28.0 * par;
+    final imageScale = isReducedMotion ? 1.0 : (0.90 + 0.10 * fadeIn - 0.14 * fadeOut);
 
     return Positioned.fill(
-      child: Opacity(
-        opacity: sceneOpacity.clamp(0.0, 1.0),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 24 : 72,
-            vertical: isMobile ? 32 : 48,
+      child: RepaintBoundary(
+        child: Opacity(
+          opacity: sceneOpacity.clamp(0.0, 1.0),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 24 : 72,
+              vertical: isMobile ? 32 : 48,
+            ),
+            child: isCentered
+                ? _buildCenteredSceneLayout(
+                    headlineLines: headlineLines,
+                    supportingCopy: supportingCopy,
+                    imageAsset: imageAsset,
+                    imageSemanticLabel: imageSemanticLabel,
+                    imageCaption: imageCaption,
+                    fadeIn: fadeIn,
+                    fadeOut: fadeOut,
+                    parallaxY: parallaxY,
+                    imageScale: imageScale,
+                    reveal: reveal,
+                    isMobile: isMobile,
+                    isReducedMotion: isReducedMotion,
+                  )
+                : _buildSplitSceneLayout(
+                    headlineLines: headlineLines,
+                    supportingCopy: supportingCopy,
+                    imageAsset: imageAsset,
+                    imageSemanticLabel: imageSemanticLabel,
+                    imageCaption: imageCaption,
+                    fadeIn: fadeIn,
+                    fadeOut: fadeOut,
+                    parallaxY: parallaxY,
+                    imageScale: imageScale,
+                    reveal: reveal,
+                    isMobile: isMobile,
+                    isReducedMotion: isReducedMotion,
+                  ),
           ),
-          child: isCentered
-              ? _buildCenteredSceneLayout(
-                  headlineLines: headlineLines,
-                  supportingCopy: supportingCopy,
-                  imageAsset: imageAsset,
-                  imageSemanticLabel: imageSemanticLabel,
-                  imageCaption: imageCaption,
-                  fadeIn: fadeIn,
-                  fadeOut: fadeOut,
-                  parallaxY: parallaxY,
-                  imageScale: imageScale,
-                  reveal: reveal,
-                  isMobile: isMobile,
-                  isReducedMotion: isReducedMotion,
-                )
-              : _buildSplitSceneLayout(
-                  headlineLines: headlineLines,
-                  supportingCopy: supportingCopy,
-                  imageAsset: imageAsset,
-                  imageSemanticLabel: imageSemanticLabel,
-                  imageCaption: imageCaption,
-                  fadeIn: fadeIn,
-                  fadeOut: fadeOut,
-                  parallaxY: parallaxY,
-                  imageScale: imageScale,
-                  reveal: reveal,
-                  isMobile: isMobile,
-                  isReducedMotion: isReducedMotion,
-                ),
         ),
       ),
     );
@@ -560,12 +633,12 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: crossAxisAlignment,
       children: [
-        // Headline lines with elegant masked reveal
+        // Headline lines with elegant transform reveal
         for (int i = 0; i < headlineLines.length; i++) ...[
           ClipRect(
             child: Builder(builder: (context) {
               final t = _clamp(fadeIn * 1.25 - i * 0.20);
-              final lineTranslateY = isReducedMotion ? 0.0 : ((1.0 - _ease(t)) * 48.0 - fadeOut * 48.0);
+              final lineTranslateY = isReducedMotion ? 0.0 : ((1.0 - _ease(t)) * 44.0 - fadeOut * 44.0);
               return Transform.translate(
                 offset: Offset(0, lineTranslateY),
                 child: Text(
@@ -620,7 +693,7 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
   }) {
     if (imageAsset == null) return const SizedBox.shrink();
 
-    Widget clippedImage = Image.asset(
+    Widget imageWidget = Image.asset(
       imageAsset,
       fit: BoxFit.contain,
       semanticLabel: imageSemanticLabel,
@@ -634,21 +707,24 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
       },
     );
 
-    if (!isReducedMotion) {
+    // Performance Optimization: Only apply clipping during the active reveal (< 0.999).
+    // Once fully revealed, bypass clipping completely to eliminate saveLayer overhead.
+    Widget clippedImage = imageWidget;
+    if (!isReducedMotion && fadeIn < 0.999) {
       if (reveal == 'iris') {
         clippedImage = ClipPath(
           clipper: _IrisClipper(progress: fadeIn),
-          child: clippedImage,
+          child: imageWidget,
         );
       } else if (reveal == 'rise') {
         clippedImage = ClipRect(
           clipper: _RiseClipper(progress: fadeIn),
-          child: clippedImage,
+          child: imageWidget,
         );
       } else if (reveal == 'wipe') {
         clippedImage = ClipRect(
           clipper: _WipeClipper(progress: fadeIn),
-          child: clippedImage,
+          child: imageWidget,
         );
       }
     }
@@ -657,46 +733,48 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
         ? (isMobile ? 180.0 : 240.0)
         : (isMobile ? 240.0 : 380.0);
 
-    return Transform.translate(
-      offset: Offset(0, parallaxY),
-      child: Transform.scale(
-        scale: imageScale,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: figureWidth,
-              constraints: BoxConstraints(
-                maxHeight: isMobile ? 220 : 380,
+    return RepaintBoundary(
+      child: Transform.translate(
+        offset: Offset(0, parallaxY),
+        child: Transform.scale(
+          scale: imageScale,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: figureWidth,
+                constraints: BoxConstraints(
+                  maxHeight: isMobile ? 220 : 380,
+                ),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFD4622A).withValues(alpha: 0.16 * fadeIn),
+                      blurRadius: 24,
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: clippedImage,
               ),
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFD4622A).withValues(alpha: 0.18 * fadeIn),
-                    blurRadius: 40,
-                    spreadRadius: 4,
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    blurRadius: 30,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              Text(
+                imageCaption,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                  fontSize: 11,
+                  letterSpacing: 1.4,
+                  color: const Color(0xFFD9C7A3).withValues(alpha: 0.8),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              child: clippedImage,
-            ),
-            const SizedBox(height: 12),
-            Text(
-              imageCaption,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.montserrat(
-                fontSize: 11,
-                letterSpacing: 1.4,
-                color: const Color(0xFFD9C7A3).withValues(alpha: 0.8),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -938,10 +1016,10 @@ class _HoverableCollectionCardState extends State<_HoverableCollectionCard> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 320),
+          duration: const Duration(milliseconds: 280),
           curve: Curves.easeOutCubic,
           width: widget.width,
-          transform: Matrix4.translationValues(0, _isHovered ? -6 : 0, 0),
+          transform: Matrix4.translationValues(0, _isHovered ? -5 : 0, 0),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(4),
@@ -952,10 +1030,10 @@ class _HoverableCollectionCardState extends State<_HoverableCollectionCard> {
             boxShadow: [
               BoxShadow(
                 color: _isHovered
-                    ? const Color(0x240B1F3B)
-                    : const Color(0x0C0B1F3B),
-                blurRadius: _isHovered ? 24 : 10,
-                offset: Offset(0, _isHovered ? 12 : 4),
+                    ? const Color(0x200B1F3B)
+                    : const Color(0x0A0B1F3B),
+                blurRadius: _isHovered ? 18 : 8,
+                offset: Offset(0, _isHovered ? 10 : 3),
               ),
             ],
           ),
@@ -973,9 +1051,9 @@ class _HoverableCollectionCardState extends State<_HoverableCollectionCard> {
                     children: [
                       Positioned.fill(
                         child: AnimatedScale(
-                          duration: const Duration(milliseconds: 400),
+                          duration: const Duration(milliseconds: 350),
                           curve: Curves.easeOutCubic,
-                          scale: _isHovered ? 1.05 : 1.0,
+                          scale: _isHovered ? 1.04 : 1.0,
                           child: Image.asset(
                             d.imageAsset,
                             fit: BoxFit.contain,
@@ -1080,7 +1158,7 @@ class _HoverableCollectionCardState extends State<_HoverableCollectionCard> {
 }
 
 /// Concentric Celestial Rings Painter
-/// Draws the exact ornamental gold geometry from Scene 4 of the prototype
+/// Draws the ornamental gold geometry from Scene 4
 class _OrnamentalRingsPainter extends CustomPainter {
   const _OrnamentalRingsPainter({
     required this.progress,
@@ -1104,7 +1182,7 @@ class _OrnamentalRingsPainter extends CustomPainter {
       final strokeProgress = (ringsAlpha * 1.4 - i * 0.12).clamp(0.0, 1.0);
 
       final paint = Paint()
-        ..color = const Color(0xFFC8A45C).withValues(alpha: circleAlpha * 0.8)
+        ..color = const Color(0xFFC8A45C).withValues(alpha: circleAlpha * 0.75)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
 
@@ -1126,9 +1204,9 @@ class _OrnamentalRingsPainter extends CustomPainter {
     final hlRadius = baseRadius * 0.56;
     final hlRotation = -(progress * 1.2 * 2 * math.pi);
     final hlPaint = Paint()
-      ..color = const Color(0xFFD4622A).withValues(alpha: 0.85)
+      ..color = const Color(0xFFD4622A).withValues(alpha: 0.82)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.4;
+      ..strokeWidth = 2.0;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: hlRadius),
@@ -1141,7 +1219,7 @@ class _OrnamentalRingsPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _OrnamentalRingsPainter oldDelegate) {
-    return oldDelegate.progress != progress || oldDelegate.ringsAlpha != ringsAlpha;
+    return (oldDelegate.progress - progress).abs() > 0.001 || (oldDelegate.ringsAlpha - ringsAlpha).abs() > 0.001;
   }
 }
 

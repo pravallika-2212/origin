@@ -137,18 +137,10 @@ class HeritagePage extends ConsumerWidget {
             // Hero Heritage Banner
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 56),
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: isMobile ? 44 : 56),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFF4EAD8),
-                    OriginColors.ivory,
-                    Color(0xFFEBD7CB),
-                  ],
-                ),
-                border: Border(bottom: BorderSide(color: OriginColors.cardBorder)),
+                color: Color(0xFFFAF7F0),
+                border: Border(bottom: BorderSide(color: Color(0x38D4AF7C), width: 1)),
               ),
               child: Center(
                 child: Container(

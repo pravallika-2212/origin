@@ -30,7 +30,7 @@ export default function OriginCinematicSection({ onNavigate }) {
         alt: 'Imperial Crown of Austria set with royal diamonds, rubies, sapphires and pearls',
         caption: 'Europe · Imperial Crown of Austria · Hofburg Vienna',
         reveal: 'iris',
-        win: [0.0, 0.08, 0.20, 0.30]
+        win: [0.0, 0.0, 0.20, 0.30]
       },
       {
         id: 'necklace',
@@ -118,6 +118,16 @@ export default function OriginCinematicSection({ onNavigate }) {
     }
   }), []);
 
+  // Preload authentic museum imagery to avoid decoding frame drops
+  useEffect(() => {
+    config.scenes.forEach((s) => {
+      if (s.image) {
+        const img = new Image();
+        img.src = s.image;
+      }
+    });
+  }, [config]);
+
   // Check prefers-reduced-motion
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -127,13 +137,32 @@ export default function OriginCinematicSection({ onNavigate }) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Handle scroll-driven animation
+  // Handle scroll-driven animation with cached DOM references
   useEffect(() => {
     if (reducedMotion) return;
 
     const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
     const ease = (t) => t * t * (3 - 2 * t);
-    const ramp = (p, a, b) => ease(clamp((p - a) / (b - a)));
+    const ramp = (p, a, b) => (a === b ? (p >= a ? 1 : 0) : ease(clamp((p - a) / (b - a))));
+
+    // Cache scene DOM element references once to eliminate DOM query overhead during scrolling
+    const cachedScenes = config.scenes.map((s) => {
+      const el = document.getElementById(`scene-${s.id}`);
+      if (!el) return null;
+      return {
+        id: s.id,
+        win: s.win,
+        reveal: s.reveal,
+        el,
+        lns: Array.from(el.querySelectorAll('.origin-cinematic-line > span')),
+        sub: el.querySelector('.origin-cinematic-sub'),
+        fig: el.querySelector('.origin-cinematic-figure'),
+      };
+    }).filter(Boolean);
+
+    const staticCircles = ringsRef.current
+      ? Array.from(ringsRef.current.querySelectorAll('.origin-ring-static'))
+      : [];
 
     let ticking = false;
 
@@ -150,46 +179,44 @@ export default function OriginCinematicSection({ onNavigate }) {
       const isMobile = window.innerWidth < 768;
       const par = isMobile ? 0 : 1;
 
-      // Update scenes
-      config.scenes.forEach((s) => {
-        const el = document.getElementById(`scene-${s.id}`);
-        if (!el) return;
-
+      // Update cached scenes with zero DOM lookups
+      for (let i = 0; i < cachedScenes.length; i++) {
+        const s = cachedScenes[i];
         const [a0, a1, o0, o1] = s.win;
         const a = ramp(p, a0, a1);
         const o = ramp(p, o0, o1);
         const v = a - o;
 
-        el.style.opacity = v > 0.001 ? '1' : '0';
-        el.style.visibility = v > 0.001 ? 'visible' : 'hidden';
+        s.el.style.opacity = v > 0.001 ? '1' : '0';
+        s.el.style.visibility = v > 0.001 ? 'visible' : 'hidden';
 
         // Headline lines
-        const lns = el.querySelectorAll('.origin-cinematic-line > span');
-        lns.forEach((l, i) => {
-          const t = clamp(a * 1.25 - i * 0.2);
-          l.style.transform = `translateY(${((1 - ease(t)) * 110 - o * 110)}%)`;
-        });
+        const lns = s.lns;
+        for (let j = 0; j < lns.length; j++) {
+          const t = clamp(a * 1.25 - j * 0.2);
+          lns[j].style.transform = `translateY(${((1 - ease(t)) * 110 - o * 110)}%)`;
+        }
 
         // Subtitle
-        const sub = el.querySelector('.origin-cinematic-sub');
-        if (sub) {
-          sub.style.opacity = `${clamp(a * 1.4 - 0.4) * (1 - o)}`;
+        if (s.sub) {
+          s.sub.style.opacity = `${clamp(a * 1.4 - 0.4) * (1 - o)}`;
         }
 
         // Figure / Image
-        const fig = el.querySelector('.origin-cinematic-figure');
-        if (fig) {
-          fig.style.opacity = `${clamp(a * 1.6) * (1 - o)}`;
-          fig.style.transform = `translateY(${(p - 0.5) * -36 * par}px) scale(${0.88 + 0.12 * a - 0.16 * o})`;
-          if (s.reveal === 'iris') {
-            fig.style.clipPath = `circle(${a * 75}% at 50% 50%)`;
+        if (s.fig) {
+          s.fig.style.opacity = `${clamp(a * 1.6) * (1 - o)}`;
+          s.fig.style.transform = `translateY(${(p - 0.5) * -36 * par}px) scale(${0.88 + 0.12 * a - 0.16 * o})`;
+          if (a >= 0.999 && o <= 0.001) {
+            s.fig.style.clipPath = 'none';
+          } else if (s.reveal === 'iris') {
+            s.fig.style.clipPath = `circle(${a * 75}% at 50% 50%)`;
           } else if (s.reveal === 'rise') {
-            fig.style.clipPath = `inset(${(1 - a) * 100}% 0 0 0)`;
+            s.fig.style.clipPath = `inset(${(1 - a) * 100}% 0 0 0)`;
           } else if (s.reveal === 'wipe') {
-            fig.style.clipPath = `inset(0 ${(1 - a) * 100}% 0 0)`;
+            s.fig.style.clipPath = `inset(0 ${(1 - a) * 100}% 0 0)`;
           }
         }
-      });
+      }
 
       // Lighting: warm ember
       if (emberRef.current) {
@@ -212,10 +239,9 @@ export default function OriginCinematicSection({ onNavigate }) {
         ringsRef.current.style.opacity = `${ra * rf}`;
         ringsRef.current.style.transform = `scale(${0.9 + ra * 0.1 + (1 - rf) * -0.15})`;
 
-        const circles = ringsRef.current.querySelectorAll('.origin-ring-static');
-        circles.forEach((c, i) => {
-          c.style.strokeDashoffset = `${1 - clamp(ra * 1.4 - i * 0.12)}`;
-        });
+        for (let k = 0; k < staticCircles.length; k++) {
+          staticCircles[k].style.strokeDashoffset = `${1 - clamp(ra * 1.4 - k * 0.12)}`;
+        }
       }
 
       // Rotating Accent Ring
@@ -245,6 +271,7 @@ export default function OriginCinematicSection({ onNavigate }) {
       window.removeEventListener('resize', onScroll);
     };
   }, [config, reducedMotion]);
+
 
   // Reveal collection cards via IntersectionObserver
   useEffect(() => {

@@ -9,6 +9,7 @@ import '../../core/widgets/origin_heritage_image.dart';
 import '../../core/widgets/origin_button.dart';
 import '../../core/widgets/origin_footer.dart';
 import '../../core/widgets/origin_header.dart';
+import '../../core/animation/lotus_painter.dart';
 import '../../data/models/order.dart';
 import '../../data/models/product.dart';
 import '../../data/repositories/cart_repository.dart';
@@ -108,39 +109,58 @@ class CartPage extends ConsumerWidget {
   Widget _buildEmptyCart(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 72, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: OriginColors.cardBorder),
+        color: const Color(0xFFFAF8F3),
+        border: Border.all(color: const Color(0x38D4AF7C)),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Column(
         children: [
-          const Icon(
-            Icons.shopping_bag_outlined,
-            size: 56,
-            color: OriginColors.goldDark,
+          Container(
+            width: 64,
+            height: 64,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white,
+              border: Border.all(color: const Color(0x40D4AF7C)),
+            ),
+            child: CustomPaint(
+              painter: LotusPainter(
+                progress: 1.0,
+                strokeWidth: 1.8,
+                color: OriginColors.goldDark,
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           Text(
-            'Your Shopping Bag is Empty',
+            'Your Royal Bag is Unadorned',
             style: GoogleFonts.playfairDisplay(
-              fontSize: 24,
+              fontSize: 26,
               fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
               color: OriginColors.royalBronze,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Discover imperial crowns, antique jewellery, and historic robes in our catalogue.',
-            style: GoogleFonts.montserrat(
-              fontSize: 13,
-              color: OriginColors.inkMuted,
+          const SizedBox(height: 10),
+          Container(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: Text(
+              'No pieces are presently reserved in your session. Explore certified sovereign regalia, heirloom jewels, and court treasures in the curated repository.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.montserrat(
+                fontSize: 13.5,
+                height: 1.6,
+                color: OriginColors.inkLight,
+              ),
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
           OriginButton(
-            text: 'EXPLORE THE COLLECTION',
+            text: 'EXPLORE THE ROYAL REPERTORY',
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
             onPressed: () => context.go('/shop'),
           ),
         ],

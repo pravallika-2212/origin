@@ -1,0 +1,13 @@
+{
+  "name": "origin-backend",
+  "version": "1.0.0",
+  "description": "ORIGIN Secure Razorpay Payment Gateway & Order Architecture",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test api/_tests/*.test.js"
+  },
+  "dependencies": {
+    "razorpay": "^2.9.5"
+  }
+}
