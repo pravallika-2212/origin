@@ -1,134 +1,161 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import './OriginCinematicSection.css';
 
 /**
- * ORIGIN Cinematic Scroll Experience & Royal Collection Section
- * Recreated with luxury aesthetics, performant rAF scroll tracking,
- * genuine editorial museum imagery, and responsive light-luxury transitions.
+ * ORIGIN 3D Rolling Cinematic Showcase & Imperial Collections
+ * Inspired by the reference motion guide:
+ * - 5 authentic royal heritage scenes in the exact sequence
+ * - 3D rolling / rotating transitions with perspective and depth
+ * - Autoplay with pause/play controls and animated progress fill bars
+ * - Previous/Next controls, clickable scene indicators, keyboard shortcuts & gestures
+ * - Seamless integration directly into the shopping collections below
  */
 export default function OriginCinematicSection({ onNavigate }) {
-  const trackRef = useRef(null);
-  const emberRef = useRef(null);
-  const sweepRef = useRef(null);
-  const ringsRef = useRef(null);
-  const hlRingRef = useRef(null);
-  const fadeRef = useRef(null);
-  const collectionRef = useRef(null);
-
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState('fwd');
+  const [isPlaying, setIsPlaying] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [collectionVisible, setCollectionVisible] = useState(false);
+  const [pointerTilt, setPointerTilt] = useState({ rx: 0, ry: 0 });
 
-  // Verified authentic editorial imagery
-  const config = useMemo(() => ({
-    scenes: [
-      {
-        id: 'crown',
-        lines: ['Where Royalty', 'Begins'],
-        sub: "Discover the artistry, symbolism and traditions behind the world's royal treasures.",
-        image: '/assets/images/prod_austria_crown.jpg',
-        fallback: 'https://images.metmuseum.org/CRDImages/ep/web-large/DP-14936-001.jpg',
-        alt: 'Imperial Crown of Austria set with royal diamonds, rubies, sapphires and pearls',
-        caption: 'Europe · Imperial Crown of Austria · Hofburg Vienna',
-        reveal: 'iris',
-        win: [0.0, 0.0, 0.20, 0.30]
-      },
-      {
-        id: 'necklace',
-        lines: ['The Art of', 'Adornment'],
-        sub: 'Centuries of royal goldsmithing, uncut emeralds, and ceremonial kundan jewellery.',
-        image: '/assets/images/prod_kundan_necklace.jpg',
-        fallback: 'https://images.metmuseum.org/CRDImages/is/web-large/15.95.54.1.jpg',
-        alt: 'Mughal Kundan and Colombian emerald ceremonial royal necklace',
-        caption: 'India · Mughal Kundan & Emerald Necklace · The Met',
-        reveal: 'rise',
-        win: [0.20, 0.32, 0.46, 0.56]
-      },
-      {
-        id: 'clothing',
-        lines: ['Woven in', 'Heritage'],
-        sub: 'Sacred ceremonial court silks, supplementary gold thread songket, and coronation robes.',
-        image: '/assets/images/prod_korean_wonsam.jpg',
-        fallback: 'https://images.metmuseum.org/CRDImages/as/web-large/206897.jpg',
-        alt: 'Joseon Dynasty royal court embroidered ceremonial wonsam robe',
-        caption: 'Korea · Joseon Royal Court Robe (Wonsam)',
-        reveal: 'wipe',
-        win: [0.46, 0.58, 0.70, 0.78]
-      },
-      {
-        id: 'emblem',
-        lines: ['Heritage,', 'Gathered in One Place'],
-        sub: 'Curated from sovereign treasuries, royal dynasties, and celebrated ateliers across the globe.',
-        image: '/assets/images/prod_chimu_gold.jpg',
-        fallback: 'https://images.metmuseum.org/CRDImages/ao/web-large/DP-25936-001.jpg',
-        alt: 'Pre-Columbian sovereign solid gold regalia sun plaque',
-        caption: 'The Americas · Sovereign Sun Plaque Regalia',
-        reveal: 'iris',
-        center: true,
-        win: [0.68, 0.78, 0.88, 0.95]
-      }
-    ],
-    collection: {
-      eyebrow: 'THE IMPERIAL REPERTORY',
-      title: "Explore the World's Royal Heritage",
-      sub: 'From exquisite jewellery and ceremonial fashion to palace décor and historic treasures, discover pieces inspired by royal traditions across the world.',
-      cards: [
-        {
-          title: 'Crowns & Tiaras',
-          desc: 'Handcrafted diadems, imperial crowns and ceremonial headpieces preserved in state archives.',
-          image: '/assets/images/prod_austria_crown.jpg',
-          badge: 'CERTIFIED REGALIA',
-          route: '/shop?category=Imperial%20Jewels'
-        },
-        {
-          title: 'Royal Jewellery',
-          desc: 'Kundan chokers, Colombian emeralds and imperial gems set by master court goldsmiths.',
-          image: '/assets/images/prod_kundan_necklace.jpg',
-          badge: 'HEIRLOOM JEWELS',
-          route: '/shop?category=Imperial%20Jewels'
-        },
-        {
-          title: 'Royal Fashion',
-          desc: 'Haute couture court robes, gold zari silks and traditional coronation ensembles.',
-          image: '/assets/images/prod_korean_wonsam.jpg',
-          badge: 'COURT COUTURE',
-          route: '/shop?category=Royal%20Wardrobe'
-        },
-        {
-          title: 'Palace Décor',
-          desc: 'Water-gilded consoles, master khatam marquetry and sovereign throne room appointments.',
-          image: '/assets/images/prod_versailles_console.jpg',
-          badge: 'PALATIAL LIVING',
-          route: '/shop?category=Palace%20Living'
-        },
-        {
-          title: 'Antiques & Collectibles',
-          desc: 'Museum-grade Jingdezhen cobalt porcelain, imperial seals and certified historical relics.',
-          image: '/assets/images/prod_ming_vase.jpg',
-          badge: 'MUSEUM ANTIQUITY',
-          route: '/shop?category=Dining%20%26%20Tableware'
-        },
-        {
-          title: 'Cultural Treasures',
-          desc: 'Pre-Columbian gold regalia, Asante royal emblems and sacred global antiquities.',
-          image: '/assets/images/prod_chimu_gold.jpg',
-          badge: 'GLOBAL SOVEREIGNTY',
-          route: '/shop?category=Treasures%20of%20the%20World'
-        }
+  const stageRef = useRef(null);
+  const timerRef = useRef(null);
+  const sweepRef = useRef(null);
+  const collectionRef = useRef(null);
+  const touchStartXRef = useRef(null);
+
+  // The 5 Authenticated Scenes
+  const scenes = useMemo(() => [
+    {
+      id: 'crown',
+      name: 'Where Royalty Begins',
+      theme: 'dark',
+      lines: ['Where Royalty', 'Begins'],
+      sub: "Discover the artistry, symbolism and traditions behind the world's royal treasures.",
+      image: '/assets/images/prod_austria_crown.jpg',
+      fallback: 'assets/images/prod_austria_crown.jpg',
+      alt: 'Imperial Crown of Austria set with royal gemstones and pearl arches',
+      caption: 'Europe · Imperial Crown of Austria · Hofburg Vienna'
+    },
+    {
+      id: 'necklace',
+      name: 'The Art of Adornment',
+      theme: 'dark',
+      lines: ['The Art of', 'Adornment'],
+      sub: 'Centuries of royal goldsmithing, uncut emeralds, and ceremonial kundan jewellery.',
+      image: '/assets/images/prod_kundan_necklace.jpg',
+      fallback: 'assets/images/prod_kundan_necklace.jpg',
+      alt: 'Mughal Kundan and Colombian emerald ceremonial royal necklace',
+      caption: 'India · Mughal Kundan & Emerald Necklace · The Met',
+      sweep: true
+    },
+    {
+      id: 'clothing',
+      name: 'Woven in Heritage',
+      theme: 'dark',
+      lines: ['Woven in', 'Heritage'],
+      sub: 'Sacred ceremonial court silks, supplementary gold thread songket, and coronation robes.',
+      image: '/assets/images/prod_korean_wonsam.jpg',
+      fallback: 'assets/images/prod_korean_wonsam.jpg',
+      alt: 'Joseon Dynasty royal court embroidered ceremonial wonsam robe',
+      caption: 'Korea · Joseon Royal Court Robe (Wonsam)'
+    },
+    {
+      id: 'emblem',
+      name: 'Heritage, gathered in one place',
+      theme: 'dark',
+      center: true,
+      rings: true,
+      lines: ['Heritage,', 'gathered in one place'],
+      sub: 'Curated from sovereign treasuries, royal dynasties, and celebrated ateliers across the globe.',
+      image: '/assets/images/prod_chimu_gold.jpg',
+      fallback: 'assets/images/prod_chimu_gold.jpg',
+      alt: 'Pre-Columbian sovereign solid gold regalia sun plaque',
+      caption: 'The Americas · Sovereign Sun Plaque Regalia'
+    },
+    {
+      id: 'collection',
+      name: "Explore the World's Royal Heritage",
+      theme: 'light',
+      lines: ['Explore the World’s', 'Royal Heritage'],
+      sub: 'From crowns and tiaras to palace tableware, browse pieces from across the world.',
+      image: '/assets/images/prod_versailles_console.jpg',
+      fallback: 'assets/images/prod_versailles_console.jpg',
+      alt: 'Versailles giltwood royal console with hand-carved acanthus leaves',
+      caption: 'France · Versailles Giltwood Royal Console',
+      chips: [
+        { label: 'Crowns & Tiaras', cat: 'Imperial Jewels' },
+        { label: 'Royal Jewellery', cat: 'Imperial Jewels' },
+        { label: 'Royal Fashion', cat: 'Royal Wardrobe' },
+        { label: 'Palace Décor', cat: 'Palace Living' },
+        { label: 'Antiques & Collectibles', cat: 'Dining & Tableware' },
+        { label: 'Cultural Treasures', cat: 'Treasures of the World' }
       ]
     }
-  }), []);
+  ], []);
 
-  // Preload authentic museum imagery to avoid decoding frame drops
+  // Collection Cards directly below the stage
+  const collectionCards = useMemo(() => [
+    {
+      title: 'Crowns & Tiaras',
+      desc: 'Handcrafted diadems, imperial crowns and ceremonial headpieces preserved in state archives.',
+      image: '/assets/images/prod_austria_crown.jpg',
+      fallback: 'assets/images/prod_austria_crown.jpg',
+      badge: 'CERTIFIED REGALIA',
+      route: '/shop?category=Imperial%20Jewels'
+    },
+    {
+      title: 'Royal Jewellery',
+      desc: 'Kundan chokers, Colombian emeralds and imperial gems set by master court goldsmiths.',
+      image: '/assets/images/prod_kundan_necklace.jpg',
+      fallback: 'assets/images/prod_kundan_necklace.jpg',
+      badge: 'HEIRLOOM JEWELS',
+      route: '/shop?category=Imperial%20Jewels'
+    },
+    {
+      title: 'Royal Fashion',
+      desc: 'Haute couture court robes, gold zari silks and traditional coronation ensembles.',
+      image: '/assets/images/prod_korean_wonsam.jpg',
+      fallback: 'assets/images/prod_korean_wonsam.jpg',
+      badge: 'COURT COUTURE',
+      route: '/shop?category=Royal%20Wardrobe'
+    },
+    {
+      title: 'Palace Décor',
+      desc: 'Water-gilded consoles, master khatam marquetry and sovereign throne room appointments.',
+      image: '/assets/images/prod_versailles_console.jpg',
+      fallback: 'assets/images/prod_versailles_console.jpg',
+      badge: 'PALATIAL LIVING',
+      route: '/shop?category=Palace%20Living'
+    },
+    {
+      title: 'Antiques & Collectibles',
+      desc: 'Museum-grade Jingdezhen cobalt porcelain, imperial seals and certified historical relics.',
+      image: '/assets/images/prod_ming_vase.jpg',
+      fallback: 'assets/images/prod_ming_vase.jpg',
+      badge: 'MUSEUM ANTIQUITY',
+      route: '/shop?category=Dining%20%26%20Tableware'
+    },
+    {
+      title: 'Cultural Treasures',
+      desc: 'Pre-Columbian gold regalia, Asante royal emblems and sacred global antiquities.',
+      image: '/assets/images/prod_chimu_gold.jpg',
+      fallback: 'assets/images/prod_chimu_gold.jpg',
+      badge: 'GLOBAL SOVEREIGNTY',
+      route: '/shop?category=Treasures%20of%20the%20World'
+    }
+  ], []);
+
+  // Preload images
   useEffect(() => {
-    config.scenes.forEach((s) => {
+    scenes.forEach((s) => {
       if (s.image) {
         const img = new Image();
         img.src = s.image;
       }
     });
-  }, [config]);
+  }, [scenes]);
 
-  // Check prefers-reduced-motion
+  // Reduced motion preference
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     setReducedMotion(mq.matches);
@@ -137,165 +164,83 @@ export default function OriginCinematicSection({ onNavigate }) {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Handle scroll-driven animation with cached DOM references
+  // Transition handler
+  const goTo = useCallback((targetIndex, dir) => {
+    const N = scenes.length;
+    const nextIdx = ((targetIndex % N) + N) % N;
+    if (nextIdx === currentIndex) return;
+
+    const fwd = dir !== undefined ? dir > 0 : nextIdx > currentIndex;
+    setDirection(fwd ? 'fwd' : 'back');
+    setCurrentIndex(nextIdx);
+  }, [currentIndex, scenes.length]);
+
+  // Autoplay timer (3.5 seconds)
   useEffect(() => {
-    if (reducedMotion) return;
-
-    const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
-    const ease = (t) => t * t * (3 - 2 * t);
-    const ramp = (p, a, b) => (a === b ? (p >= a ? 1 : 0) : ease(clamp((p - a) / (b - a))));
-
-    // Cache scene DOM element references once to eliminate DOM query overhead during scrolling
-    const cachedScenes = config.scenes.map((s) => {
-      const el = document.getElementById(`scene-${s.id}`);
-      if (!el) return null;
-      return {
-        id: s.id,
-        win: s.win,
-        reveal: s.reveal,
-        el,
-        lns: Array.from(el.querySelectorAll('.origin-cinematic-line > span')),
-        sub: el.querySelector('.origin-cinematic-sub'),
-        fig: el.querySelector('.origin-cinematic-figure'),
-      };
-    }).filter(Boolean);
-
-    const staticCircles = ringsRef.current
-      ? Array.from(ringsRef.current.querySelectorAll('.origin-ring-static'))
-      : [];
-
-    let ticking = false;
-
-    const render = () => {
-      ticking = false;
-      const track = trackRef.current;
-      if (!track) return;
-
-      const r = track.getBoundingClientRect();
-      const vh = window.innerHeight;
-      if (r.bottom < -50 || r.top > vh + 50) return;
-
-      const p = clamp(-r.top / (r.height - vh));
-      const isMobile = window.innerWidth < 768;
-      const par = isMobile ? 0 : 1;
-
-      // Update cached scenes with zero DOM lookups
-      for (let i = 0; i < cachedScenes.length; i++) {
-        const s = cachedScenes[i];
-        const [a0, a1, o0, o1] = s.win;
-        const a = ramp(p, a0, a1);
-        const o = ramp(p, o0, o1);
-        const v = a - o;
-
-        s.el.style.opacity = v > 0.001 ? '1' : '0';
-        s.el.style.visibility = v > 0.001 ? 'visible' : 'hidden';
-
-        // Headline lines
-        const lns = s.lns;
-        for (let j = 0; j < lns.length; j++) {
-          const t = clamp(a * 1.25 - j * 0.2);
-          lns[j].style.transform = `translateY(${((1 - ease(t)) * 110 - o * 110)}%)`;
-        }
-
-        // Subtitle
-        if (s.sub) {
-          s.sub.style.opacity = `${clamp(a * 1.4 - 0.4) * (1 - o)}`;
-        }
-
-        // Figure / Image
-        if (s.fig) {
-          s.fig.style.opacity = `${clamp(a * 1.6) * (1 - o)}`;
-          s.fig.style.transform = `translateY(${(p - 0.5) * -36 * par}px) scale(${0.88 + 0.12 * a - 0.16 * o})`;
-          if (a >= 0.999 && o <= 0.001) {
-            s.fig.style.clipPath = 'none';
-          } else if (s.reveal === 'iris') {
-            s.fig.style.clipPath = `circle(${a * 75}% at 50% 50%)`;
-          } else if (s.reveal === 'rise') {
-            s.fig.style.clipPath = `inset(${(1 - a) * 100}% 0 0 0)`;
-          } else if (s.reveal === 'wipe') {
-            s.fig.style.clipPath = `inset(0 ${(1 - a) * 100}% 0 0)`;
-          }
-        }
-      }
-
-      // Lighting: warm ember
-      if (emberRef.current) {
-        const em = ramp(p, 0.0, 0.1) * (1 - ramp(p, 0.5, 0.7));
-        emberRef.current.style.opacity = `${em}`;
-        emberRef.current.style.transform = `translate(-50%, -50%) scale(${1 + ramp(p, 0.2, 0.55) * 0.4})`;
-      }
-
-      // Firelight sweep
-      if (sweepRef.current) {
-        const sw = ramp(p, 0.18, 0.5);
-        sweepRef.current.style.opacity = `${Math.sin(Math.PI * sw) * 0.55}`;
-        sweepRef.current.style.transform = `translate(-50%, -50%) scale(${0.05 + sw * 0.95})`;
-      }
-
-      // Ornamental Rings
-      if (ringsRef.current) {
-        const ra = ramp(p, 0.66, 0.82);
-        const rf = 1 - ramp(p, 0.88, 0.95);
-        ringsRef.current.style.opacity = `${ra * rf}`;
-        ringsRef.current.style.transform = `scale(${0.9 + ra * 0.1 + (1 - rf) * -0.15})`;
-
-        for (let k = 0; k < staticCircles.length; k++) {
-          staticCircles[k].style.strokeDashoffset = `${1 - clamp(ra * 1.4 - k * 0.12)}`;
-        }
-      }
-
-      // Rotating Accent Ring
-      if (hlRingRef.current) {
-        hlRingRef.current.style.strokeDashoffset = `${-(p * 1.2) % 1}`;
-      }
-
-      // Transition to royal ivory
-      if (fadeRef.current) {
-        fadeRef.current.style.opacity = `${ramp(p, 0.9, 1.0)}`;
-      }
-    };
-
-    const onScroll = () => {
-      if (!ticking) {
-        ticking = true;
-        requestAnimationFrame(render);
-      }
-    };
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    render();
-
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [config, reducedMotion]);
-
-
-  // Reveal collection cards via IntersectionObserver
-  useEffect(() => {
-    const el = collectionRef.current;
-    if (!el) return;
-
-    if (reducedMotion) {
-      setCollectionVisible(true);
+    if (!isPlaying || reducedMotion) {
+      if (timerRef.current) clearInterval(timerRef.current);
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setCollectionVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.15 }
-    );
+    timerRef.current = setTimeout(() => {
+      goTo(currentIndex + 1, 1);
+    }, 3500);
 
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [reducedMotion]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [currentIndex, isPlaying, reducedMotion, goTo]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight') {
+        goTo(currentIndex + 1, 1);
+      } else if (e.key === 'ArrowLeft') {
+        goTo(currentIndex - 1, -1);
+      } else if (e.key === ' ' && e.target === document.body) {
+        e.preventDefault();
+        setIsPlaying((prev) => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, goTo]);
+
+  // Touch swipe support
+  const handleTouchStart = (e) => {
+    touchStartXRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return;
+    const diff = e.changedTouches[0].clientX - touchStartXRef.current;
+    if (Math.abs(diff) > 50) {
+      if (diff < 0) {
+        goTo(currentIndex + 1, 1);
+      } else {
+        goTo(currentIndex - 1, -1);
+      }
+    }
+    touchStartXRef.current = null;
+  };
+
+  // Fine-pointer 3D parallax tilt
+  const handleMouseMove = (e) => {
+    if (reducedMotion || !stageRef.current) return;
+    const rect = stageRef.current.getBoundingClientRect();
+    const px = (e.clientX - rect.left) / rect.width;
+    const py = (e.clientY - rect.top) / rect.height;
+    setPointerTilt({
+      ry: (px - 0.5) * 12,
+      rx: (0.5 - py) * 7
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setPointerTilt({ rx: 0, ry: 0 });
+  };
 
   const handleCardClick = (route) => {
     if (onNavigate) {
@@ -305,99 +250,195 @@ export default function OriginCinematicSection({ onNavigate }) {
     }
   };
 
+  const scrollToCollection = () => {
+    if (collectionRef.current) {
+      collectionRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const activeScene = scenes[currentIndex];
+
   return (
-    <section className="origin-cinematic-wrapper" aria-label="ORIGIN Chronicles & Imperial Collections">
-      {/* 1. TALL SCROLL TRACK */}
-      <div className={`origin-cinematic-track ${reducedMotion ? 'reduced-motion' : ''}`} ref={trackRef}>
-        <div className="origin-cinematic-stage">
-          {/* Deep Burgundy & Charcoal Atmosphere */}
-          <div className="origin-cinematic-bg-burg" />
-          <div className="origin-cinematic-ember" ref={emberRef} />
-          <div className="origin-cinematic-sweep" ref={sweepRef} />
+    <section className="origin-rolling-wrapper" aria-label="ORIGIN Chronicles & Royal Showcase">
+      {/* 1. THE 3D ROLLING STAGE */}
+      <div
+        className="origin-stage"
+        ref={stageRef}
+        data-theme={activeScene.theme}
+        data-dir={direction}
+        data-i={currentIndex}
+        aria-roledescription="carousel"
+        aria-label="ORIGIN royal heritage showcase"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          '--rx': `${pointerTilt.rx.toFixed(2)}deg`,
+          '--ry': `${pointerTilt.ry.toFixed(2)}deg`,
+          '--dur': '3.5s'
+        }}
+      >
+        <div className="origin-stage-base" />
+        <div className="origin-stage-bg" />
+        <div className="origin-stage-ember" />
 
-          {/* Sacred Ornamental Rings (SVG) */}
-          <svg
-            className="origin-cinematic-rings"
-            ref={ringsRef}
-            viewBox="-100 -100 200 200"
-            preserveAspectRatio="xMidYMid slice"
-            aria-hidden="true"
-          >
-            {[14, 26, 40, 56, 74].map((r) => (
-              <circle
-                key={r}
-                className="origin-ring-static"
-                r={r}
-                pathLength="1"
-                strokeDasharray="1"
-                strokeDashoffset="1"
-                style={{ opacity: 1 - r / 110 }}
-              />
-            ))}
-            <circle
-              ref={hlRingRef}
-              id="origin-hl-ring"
-              r="56"
-              pathLength="1"
-              strokeDasharray="0.07 0.93"
-              style={{ strokeWidth: 2, stroke: '#d4622a', opacity: 0.8 }}
-            />
-          </svg>
+        {/* Top Heritage Badge */}
+        <div className="origin-stage-ribbon">
+          <span className="origin-ribbon-dot" />
+          <span>ORIGIN CHRONICLES · ROLLING SHOWCASE</span>
+        </div>
 
-          {/* Storytelling Scenes */}
-          <div className="origin-cinematic-scenes-container">
-            {config.scenes.map((scene) => (
-              <div
+        {/* The 5 Rolling Scenes */}
+        <div className="origin-scenes-host">
+          {scenes.map((scene, idx) => {
+            const isActive = idx === currentIndex;
+            const isLeaving = direction === 'fwd'
+              ? idx === (currentIndex - 1 + scenes.length) % scenes.length
+              : idx === (currentIndex + 1) % scenes.length;
+
+            return (
+              <article
                 key={scene.id}
-                id={`scene-${scene.id}`}
-                className={`origin-cinematic-scene ${scene.center ? 'center' : ''}`}
+                className={`origin-scene ${scene.center ? 'center' : ''} ${isActive ? 'active' : ''} ${isLeaving ? 'leaving' : ''}`}
+                aria-roledescription="slide"
+                aria-label={`${idx + 1} of ${scenes.length}: ${scene.name}`}
+                aria-hidden={!isActive}
               >
-                <div className="origin-cinematic-txt">
+                {scene.sweep && <div className="origin-sweep" ref={sweepRef} />}
+
+                {scene.rings && (
+                  <svg
+                    className="origin-rings"
+                    viewBox="-100 -100 200 200"
+                    preserveAspectRatio="xMidYMid slice"
+                    aria-hidden="true"
+                  >
+                    {[14, 26, 40, 56, 74].map((r, k) => (
+                      <circle
+                        key={r}
+                        r={r}
+                        pathLength="1"
+                        style={{ '--k': k, opacity: 1 - r / 110 }}
+                      />
+                    ))}
+                    <circle className="origin-rings-hl" r="56" pathLength="1" />
+                  </svg>
+                )}
+
+                <div className="origin-txt">
                   <h2>
-                    {scene.lines.map((line, i) => (
-                      <span key={i} className="origin-cinematic-line">
-                        <span>{line}</span>
+                    {scene.lines.map((l, k) => (
+                      <span key={k} className="origin-ln">
+                        <span style={{ '--k': k }}>{l}</span>
                       </span>
                     ))}
                   </h2>
-                  {scene.sub && <p className="origin-cinematic-sub">{scene.sub}</p>}
+
+                  {scene.sub && <p className="origin-sub">{scene.sub}</p>}
+
+                  {scene.chips && (
+                    <>
+                      <div className="origin-chips">
+                        {scene.chips.map((chip) => (
+                          <span
+                            key={chip.label}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleCardClick(`/shop?category=${encodeURIComponent(chip.cat)}`)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCardClick(`/shop?category=${encodeURIComponent(chip.cat)}`);
+                            }}
+                          >
+                            {chip.label}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="origin-collection-jump">
+                        <button
+                          type="button"
+                          className="origin-btn-jump"
+                          onClick={scrollToCollection}
+                        >
+                          BROWSE COLLECTION REPERTORY ↓
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {scene.image && (
-                  <figure className="origin-cinematic-figure">
-                    <img
-                      src={scene.image}
-                      alt={scene.alt}
-                      loading="lazy"
-                      onError={(e) => {
-                        if (scene.fallback && e.target.src !== scene.fallback) {
-                          e.target.src = scene.fallback;
-                        }
-                      }}
-                    />
-                    <figcaption className="origin-cinematic-tag">{scene.caption}</figcaption>
+                  <figure className="origin-art">
+                    <div className="origin-art-in" role="img" aria-label={scene.alt}>
+                      <img
+                        src={scene.image}
+                        alt={scene.alt}
+                        loading="eager"
+                        onError={(e) => {
+                          if (scene.fallback && e.target.src !== scene.fallback) {
+                            e.target.src = scene.fallback;
+                          }
+                        }}
+                      />
+                    </div>
+                    <figcaption className="origin-art-tag">{scene.caption}</figcaption>
                   </figure>
                 )}
-              </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {/* Navigation & Autoplay Controls */}
+        <nav className="origin-ctl" aria-label="Showcase controls">
+          <button
+            className="origin-ctl-btn"
+            id="prev"
+            aria-label="Previous scene"
+            onClick={() => goTo(currentIndex - 1, -1)}
+          >
+            ‹
+          </button>
+          <button
+            className="origin-ctl-btn"
+            id="play"
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            onClick={() => setIsPlaying(!isPlaying)}
+          >
+            {isPlaying ? '❚❚' : '▶'}
+          </button>
+          <button
+            className="origin-ctl-btn"
+            id="next"
+            aria-label="Next scene"
+            onClick={() => goTo(currentIndex + 1, 1)}
+          >
+            ›
+          </button>
+
+          <div className="origin-dots" role="tablist" aria-label="Scene selection">
+            {scenes.map((s, idx) => (
+              <button
+                key={s.id}
+                className={`origin-dot ${idx === currentIndex ? 'on' : ''} ${!isPlaying ? 'paused' : ''}`}
+                aria-label={`Go to ${s.name}`}
+                aria-selected={idx === currentIndex}
+                role="tab"
+                onClick={() => goTo(idx)}
+              >
+                <span className="origin-dot-bar" />
+              </button>
             ))}
           </div>
 
-          {/* Top Brand Pill Indicator */}
-          <div className="origin-cinematic-ribbon">
-            <span className="origin-cinematic-ribbon-dot" />
-            <span>ORIGIN CHRONICLES · SCROLL TO DISCOVER</span>
+          <div className="origin-name" aria-live="polite">
+            {activeScene.name}
           </div>
-
-          {/* Final Ivory Hand-off Overlay */}
-          <div className="origin-cinematic-fade-ivory" ref={fadeRef} />
-        </div>
+        </nav>
       </div>
 
-      {/* 2. REFINED LIGHT LUXURY COLLECTION SECTION */}
-      <div
-        className={`origin-collection-section ${collectionVisible ? 'visible' : ''}`}
-        ref={collectionRef}
-      >
+      {/* 2. THE CLOSING COLLECTION SECTION */}
+      <div className="origin-collection-section" ref={collectionRef}>
         <div className="origin-collection-container">
           <div className="origin-collection-crest">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
@@ -405,12 +446,14 @@ export default function OriginCinematicSection({ onNavigate }) {
             </svg>
           </div>
 
-          <p className="origin-collection-eyebrow">{config.collection.eyebrow}</p>
-          <h2 className="origin-collection-title">{config.collection.title}</h2>
-          <p className="origin-collection-sub">{config.collection.sub}</p>
+          <p className="origin-collection-eyebrow">THE IMPERIAL REPERTORY</p>
+          <h2 className="origin-collection-title">Explore the World's Royal Heritage</h2>
+          <p className="origin-collection-sub">
+            From exquisite jewellery and ceremonial fashion to palace décor and historic treasures, discover pieces inspired by royal traditions across the world.
+          </p>
 
           <div className="origin-collection-grid">
-            {config.collection.cards.map((card, idx) => (
+            {collectionCards.map((card, idx) => (
               <article
                 key={card.title}
                 className="origin-collection-card"
@@ -431,7 +474,9 @@ export default function OriginCinematicSection({ onNavigate }) {
                     alt={`${card.title} preview`}
                     loading="lazy"
                     onError={(e) => {
-                      e.target.style.display = 'none';
+                      if (card.fallback && e.target.src !== card.fallback) {
+                        e.target.src = card.fallback;
+                      }
                     }}
                   />
                   <span className="origin-card-badge">{card.badge}</span>

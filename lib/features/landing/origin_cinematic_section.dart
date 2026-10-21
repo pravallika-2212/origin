@@ -1,48 +1,207 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/fonts.dart';
 import '../../core/utils/breakpoints.dart';
 
-/// ORIGIN High-Performance Cinematic Scroll Experience
-/// 
-/// Performance Optimizations:
-/// 1. Zero setState() during scrolling: driven entirely by ValueNotifier and ListenableBuilders.
-/// 2. Elimination of renderBox.localToGlobal() calls on every scroll frame (cached track metrics).
-/// 3. Zero layout recalculations: sticky positioning uses Transform.translate (paint-only) instead of Positioned.top.
-/// 4. Decoupled collection section: built once and isolated with RepaintBoundary.
-/// 5. Offscreen clipping bypass: ClipPath / ClipRect is only active during the active reveal window (< 0.999).
-/// 6. Pre-cached museum heritage image assets to eliminate decoding hitches and frame drops.
-/// 7. Constrained GPU fill-rates for lighting sweeps and optimized Gaussian blur shadows.
+/// Scene specification for the ORIGIN Rolling Cinematic Showcase.
+class _CinematicSceneData {
+  const _CinematicSceneData({
+    required this.id,
+    required this.name,
+    required this.headlineLines,
+    required this.supportingCopy,
+    required this.imageAsset,
+    required this.imageSemanticLabel,
+    required this.imageCaption,
+    required this.theme,
+    this.isCentered = false,
+    this.hasSweep = false,
+    this.hasRings = false,
+    this.chips = const [],
+  });
+
+  final String id;
+  final String name;
+  final List<String> headlineLines;
+  final String supportingCopy;
+  final String imageAsset;
+  final String imageSemanticLabel;
+  final String imageCaption;
+  final String theme; // 'dark' | 'light'
+  final bool isCentered;
+  final bool hasSweep;
+  final bool hasRings;
+  final List<String> chips;
+}
+
+/// ORIGIN 3D Rolling Scene Cinematic Showcase
+///
+/// Replaces the old scroll-driven cinematic progression with a controlled,
+/// premium 3D rolling transition experience inspired by the motion guide.
+/// Features:
+/// - 5 authentic royal heritage scenes in the exact intended sequence
+/// - 3D rolling transitions with perspective depth, transform origin and easing
+/// - Autoplay with smooth progress fill bars, pause/play toggle
+/// - Accessible Prev/Next navigation, clickable scene indicators, keyboard shortcuts & gestures
+/// - Authentic museum photography and gold ember lighting
+/// - Seamless connection directly into the Imperial Repertory collection cards
 class OriginCinematicSection extends StatefulWidget {
   const OriginCinematicSection({
     super.key,
-    required this.scrollController,
+    this.scrollController,
   });
 
-  final ScrollController scrollController;
+  final ScrollController? scrollController;
 
   @override
   State<OriginCinematicSection> createState() => _OriginCinematicSectionState();
 }
 
-class _OriginCinematicSectionState extends State<OriginCinematicSection> {
-  final GlobalKey _trackKey = GlobalKey();
-  final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
-  final ValueNotifier<double> _stickyOffsetNotifier = ValueNotifier<double>(0.0);
+class _OriginCinematicSectionState extends State<OriginCinematicSection>
+    with TickerProviderStateMixin {
+  // Scene definitions
+  static const List<_CinematicSceneData> _scenes = [
+    _CinematicSceneData(
+      id: 'crown',
+      name: 'Where Royalty Begins',
+      headlineLines: ['Where Royalty', 'Begins'],
+      supportingCopy:
+          "Discover the artistry, symbolism and traditions behind the world's royal treasures.",
+      imageAsset: 'assets/images/prod_austria_crown.jpg',
+      imageSemanticLabel: 'Imperial Crown of Austria set with royal gemstones and pearl arches',
+      imageCaption: 'Europe · Imperial Crown of Austria · Hofburg Vienna',
+      theme: 'dark',
+    ),
+    _CinematicSceneData(
+      id: 'necklace',
+      name: 'The Art of Adornment',
+      headlineLines: ['The Art of', 'Adornment'],
+      supportingCopy:
+          'Centuries of royal goldsmithing, uncut emeralds, and ceremonial kundan jewellery.',
+      imageAsset: 'assets/images/prod_kundan_necklace.jpg',
+      imageSemanticLabel: 'Mughal Kundan and Colombian emerald ceremonial royal necklace',
+      imageCaption: 'India · Mughal Kundan & Emerald Necklace · The Met',
+      theme: 'dark',
+      hasSweep: true,
+    ),
+    _CinematicSceneData(
+      id: 'clothing',
+      name: 'Woven in Heritage',
+      headlineLines: ['Woven in', 'Heritage'],
+      supportingCopy:
+          'Sacred ceremonial court silks, supplementary gold thread songket, and coronation robes.',
+      imageAsset: 'assets/images/prod_korean_wonsam.jpg',
+      imageSemanticLabel: 'Joseon Dynasty royal court embroidered ceremonial wonsam robe',
+      imageCaption: 'Korea · Joseon Royal Court Robe (Wonsam)',
+      theme: 'dark',
+    ),
+    _CinematicSceneData(
+      id: 'emblem',
+      name: 'Heritage, gathered in one place',
+      headlineLines: ['Heritage,', 'gathered in one place'],
+      supportingCopy:
+          'Curated from sovereign treasuries, royal dynasties, and celebrated ateliers across the globe.',
+      imageAsset: 'assets/images/prod_chimu_gold.jpg',
+      imageSemanticLabel: 'Pre-Columbian sovereign solid gold regalia sun plaque',
+      imageCaption: 'The Americas · Sovereign Sun Plaque Regalia',
+      theme: 'dark',
+      isCentered: true,
+      hasRings: true,
+    ),
+    _CinematicSceneData(
+      id: 'collection',
+      name: "Explore the World's Royal Heritage",
+      headlineLines: ['Explore the World’s', 'Royal Heritage'],
+      supportingCopy:
+          'From crowns and tiaras to palace tableware, browse pieces from across the world.',
+      imageAsset: 'assets/images/prod_versailles_console.jpg',
+      imageSemanticLabel: 'Versailles giltwood royal console with hand-carved acanthus leaves',
+      imageCaption: 'France · Versailles Giltwood Royal Console',
+      theme: 'light',
+      chips: [
+        'Crowns & Tiaras',
+        'Necklaces & Jewellery',
+        'Royal Clothing',
+        'Palace Furniture',
+        'Tableware',
+        'Cultural Artefacts',
+      ],
+    ),
+  ];
 
-  double _trackScrollStart = -1.0;
-  double _cachedTrackHeight = 0.0;
+  // State
+  int _currentIndex = 0;
+  int _targetIndex = 0;
+  bool _isForward = true;
+  bool _isPlaying = true;
   bool _imagesPrecached = false;
+
+  // 3D Tilt coordinates from mouse position
+  double _tiltRx = 0.0;
+  double _tiltRy = 0.0;
+
+  // Animation Controllers
+  late final AnimationController _rollController;
+  late final Animation<double> _rollAnimation;
+
+  late final AnimationController _autoplayController;
+  late final AnimationController _orbitController;
+  late final AnimationController _sweepController;
+
+  final FocusNode _keyboardFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    widget.scrollController.addListener(_onScroll);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _updateTrackMetrics();
-      _onScroll();
+
+    // 3D Roll Controller: 900ms with smooth cubic bezier curve
+    _rollController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _rollAnimation = CurvedAnimation(
+      parent: _rollController,
+      curve: const Cubic(0.6, 0.05, 0.2, 1.0),
+    );
+
+    _rollController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        setState(() {
+          _currentIndex = _targetIndex;
+          _rollController.reset();
+        });
+        if (_isPlaying) {
+          _autoplayController.forward(from: 0.0);
+        }
+      }
     });
+
+    // Autoplay Controller: 3.5s per scene
+    _autoplayController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3500),
+    );
+    _autoplayController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && _isPlaying) {
+        _goTo((_currentIndex + 1) % _scenes.length, forward: true);
+      }
+    });
+
+    // Ambient loop controllers
+    _orbitController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 14),
+    )..repeat();
+
+    _sweepController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1600),
+    );
+
+    // Start autoplay
+    _autoplayController.forward(from: 0.0);
   }
 
   @override
@@ -50,139 +209,219 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
     super.didChangeDependencies();
     if (!_imagesPrecached) {
       _imagesPrecached = true;
-      precacheImage(const AssetImage('assets/images/prod_austria_crown.jpg'), context);
-      precacheImage(const AssetImage('assets/images/prod_kundan_necklace.jpg'), context);
-      precacheImage(const AssetImage('assets/images/prod_korean_wonsam.jpg'), context);
-      precacheImage(const AssetImage('assets/images/prod_chimu_gold.jpg'), context);
+      for (final s in _scenes) {
+        precacheImage(AssetImage(s.imageAsset), context);
+      }
+      precacheImage(const AssetImage('assets/images/prod_ming_vase.jpg'), context);
     }
   }
 
   @override
   void dispose() {
-    widget.scrollController.removeListener(_onScroll);
-    _progressNotifier.dispose();
-    _stickyOffsetNotifier.dispose();
+    _autoplayController.dispose();
+    _rollController.dispose();
+    _orbitController.dispose();
+    _sweepController.dispose();
+    _keyboardFocusNode.dispose();
     super.dispose();
   }
 
-  void _updateTrackMetrics() {
-    if (!mounted) return;
-    final renderBox = _trackKey.currentContext?.findRenderObject() as RenderBox?;
-    if (renderBox == null || !renderBox.hasSize) return;
+  void _goTo(int newIndex, {bool? forward}) {
+    if (_rollController.isAnimating) return;
+    final target = (newIndex % _scenes.length + _scenes.length) % _scenes.length;
+    if (target == _currentIndex) return;
 
-    final pos = renderBox.localToGlobal(Offset.zero);
-    _cachedTrackHeight = renderBox.size.height;
-    if (widget.scrollController.hasClients) {
-      _trackScrollStart = widget.scrollController.offset + pos.dy;
-    } else {
-      _trackScrollStart = pos.dy;
+    final isFwd = forward ?? (target > _currentIndex);
+
+    setState(() {
+      _targetIndex = target;
+      _isForward = isFwd;
+    });
+
+    _autoplayController.stop();
+
+    if (_scenes[_targetIndex].hasSweep) {
+      _sweepController.forward(from: 0.0);
+    }
+
+    _rollController.forward(from: 0.0);
+  }
+
+  void _togglePlayPause() {
+    setState(() {
+      _isPlaying = !_isPlaying;
+      if (_isPlaying) {
+        if (!_rollController.isAnimating) {
+          _autoplayController.forward(from: _autoplayController.value);
+        }
+      } else {
+        _autoplayController.stop();
+      }
+    });
+  }
+
+  void _onKey(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+      _goTo(_currentIndex + 1, forward: true);
+    } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+      _goTo(_currentIndex - 1, forward: false);
+    } else if (event.logicalKey == LogicalKeyboardKey.space) {
+      _togglePlayPause();
     }
   }
 
-  void _onScroll() {
-    if (!mounted) return;
-    if (!widget.scrollController.hasClients) return;
-
-    final currentScroll = widget.scrollController.offset;
-    final viewportHeight = MediaQuery.sizeOf(context).height;
-
-    if (_trackScrollStart < 0 || _cachedTrackHeight <= 0) {
-      _updateTrackMetrics();
-      if (_trackScrollStart < 0) return;
+  void _scrollToCollection() {
+    if (widget.scrollController != null && widget.scrollController!.hasClients) {
+      widget.scrollController!.animateTo(
+        widget.scrollController!.offset + 500,
+        duration: const Duration(milliseconds: 700),
+        curve: Curves.easeInOutCubic,
+      );
     }
-
-    final maxScroll = _cachedTrackHeight - viewportHeight;
-    if (maxScroll <= 0) return;
-
-    final scrolledInTrack = currentScroll - _trackScrollStart;
-    final p = (scrolledInTrack / maxScroll).clamp(0.0, 1.0);
-    final offset = scrolledInTrack.clamp(0.0, maxScroll);
-
-    if ((p - _progressNotifier.value).abs() > 0.0001) {
-      _progressNotifier.value = p;
-    }
-    if ((offset - _stickyOffsetNotifier.value).abs() > 0.1) {
-      _stickyOffsetNotifier.value = offset;
-    }
-  }
-
-  // Smoothstep easing math
-  static double _clamp(double x, [double a = 0.0, double b = 1.0]) {
-    return x < a ? a : (x > b ? b : x);
-  }
-
-  static double _ease(double t) {
-    return t * t * (3.0 - 2.0 * t);
-  }
-
-  static double _ramp(double p, double a, double b) {
-    if (b <= a) return 0.0;
-    return _ease(_clamp((p - a) / (b - a)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final viewportHeight = MediaQuery.sizeOf(context).height;
-    final isReducedMotion = Breakpoints.isReducedMotion(context);
     final isMobile = Breakpoints.isMobile(context);
+    final isReducedMotion = Breakpoints.isReducedMotion(context);
 
-    // Height of scroll track (3.8x viewport on desktop, 3.2x on mobile)
-    final trackHeight = isReducedMotion ? viewportHeight : viewportHeight * (isMobile ? 3.2 : 3.8);
+    // If reduced motion is requested, stop autoplay
+    if (isReducedMotion && _isPlaying) {
+      _isPlaying = false;
+      _autoplayController.stop();
+    }
 
-    // Schedule metrics update on layout / viewport dimension changes
-    WidgetsBinding.instance.addPostFrameCallback((_) => _updateTrackMetrics());
+    final stageHeight = isMobile ? 680.0 : 760.0;
 
     return Column(
       children: [
-        // 1. TALL SCROLL TRACK WITH SMOOTH TRANSFORM PINNING (Zero layout invalidation)
-        SizedBox(
-          key: _trackKey,
-          height: trackHeight,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                height: viewportHeight,
-                child: isReducedMotion
-                    ? RepaintBoundary(
-                        child: _buildCinematicStage(
-                          progress: 0.75,
-                          viewportHeight: viewportHeight,
-                          isMobile: isMobile,
-                          isReducedMotion: true,
-                        ),
-                      )
-                    : ValueListenableBuilder<double>(
-                        valueListenable: _stickyOffsetNotifier,
-                        builder: (context, stickyOffset, child) {
-                          return Transform.translate(
-                            offset: Offset(0, stickyOffset),
-                            child: child,
+        // 1. THE 3D ROLLING SHOWCASE STAGE
+        Focus(
+          focusNode: _keyboardFocusNode,
+          autofocus: false,
+          onKeyEvent: (node, event) {
+            _onKey(event);
+            return KeyEventResult.handled;
+          },
+          child: MouseRegion(
+            onHover: (event) {
+              if (isReducedMotion || isMobile) return;
+              final box = context.findRenderObject() as RenderBox?;
+              if (box == null) return;
+              final size = box.size;
+              final px = (event.localPosition.dx / size.width).clamp(0.0, 1.0);
+              final py = (event.localPosition.dy / stageHeight).clamp(0.0, 1.0);
+              setState(() {
+                _tiltRy = ((px - 0.5) * 10.0) * math.pi / 180.0;
+                _tiltRx = ((0.5 - py) * 6.0) * math.pi / 180.0;
+              });
+            },
+            onExit: (_) {
+              if (mounted) {
+                setState(() {
+                  _tiltRx = 0.0;
+                  _tiltRy = 0.0;
+                });
+              }
+            },
+            child: GestureDetector(
+              onHorizontalDragEnd: (details) {
+                final velocity = details.primaryVelocity ?? 0;
+                if (velocity < -120) {
+                  _goTo(_currentIndex + 1, forward: true);
+                } else if (velocity > 120) {
+                  _goTo(_currentIndex - 1, forward: false);
+                }
+              },
+              child: SizedBox(
+                height: stageHeight,
+                width: double.infinity,
+                child: Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    // Stage Background
+                    _buildStageBackground(),
+
+                    // Ambient Ember Lighting
+                    if (!isReducedMotion) _buildAmbientEmber(),
+
+                    // Firelight Sweep (Scene 2)
+                    if (!isReducedMotion) _buildFirelightSweep(),
+
+                    // Concentric Orbital Celestial Rings (Scene 4)
+                    if (!isReducedMotion) _buildCelestialRings(),
+
+                    // 3D Scene Viewport
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: _rollAnimation,
+                        builder: (context, _) {
+                          return _buildSceneViewport(
+                            isMobile: isMobile,
+                            isReducedMotion: isReducedMotion,
                           );
                         },
-                        child: RepaintBoundary(
-                          child: ValueListenableBuilder<double>(
-                            valueListenable: _progressNotifier,
-                            builder: (context, progress, _) {
-                              return _buildCinematicStage(
-                                progress: progress,
-                                viewportHeight: viewportHeight,
-                                isMobile: isMobile,
-                                isReducedMotion: false,
-                              );
-                            },
+                      ),
+                    ),
+
+                    // Top Decorative Heritage Ribbon
+                    Positioned(
+                      top: 24,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFFC8A45C).withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Color(0xFFC8A45C),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'ORIGIN CHRONICLES · ROLLING SHOWCASE',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 9.5,
+                                  letterSpacing: 2.2,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFD9C7A3),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
+                    ),
+
+                    // Bottom Navigation & Autoplay Controls
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: _buildControlBar(isMobile: isMobile),
+                    ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
         ),
 
-        // 2. CLOSING COLLECTION SECTION (Isolated: never rebuilt or repainted during scroll sequence)
+        // 2. THE CLOSING COLLECTION SECTION
         RepaintBoundary(
           child: _buildClosingCollectionSection(context, isMobile),
         ),
@@ -190,94 +429,148 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
     );
   }
 
-  Widget _buildCinematicStage({
-    required double progress,
-    required double viewportHeight,
-    required bool isMobile,
-    required bool isReducedMotion,
-  }) {
-    final p = progress;
+  // Stage Background: transitions smoothly from Charcoal/Burgundy to Ivory for Scene 5
+  Widget _buildStageBackground() {
+    final currentTheme = _scenes[_currentIndex].theme;
+    final targetTheme = _scenes[_targetIndex].theme;
+    final isAnimating = _rollController.isAnimating;
 
-    // Atmospheric lighting calculations
-    final emberOpacity = (_ramp(p, 0.0, 0.10) * (1.0 - _ramp(p, 0.50, 0.70))).clamp(0.0, 1.0);
-    final emberScale = 1.0 + _ramp(p, 0.20, 0.55) * 0.40;
+    double lightProgress = 0.0;
+    if (!isAnimating) {
+      lightProgress = currentTheme == 'light' ? 1.0 : 0.0;
+    } else {
+      final fromLight = currentTheme == 'light' ? 1.0 : 0.0;
+      final toLight = targetTheme == 'light' ? 1.0 : 0.0;
+      lightProgress = fromLight + (toLight - fromLight) * _rollAnimation.value;
+    }
 
-    final sweepProgress = _ramp(p, 0.18, 0.50);
-    final sweepOpacity = (math.sin(math.pi * sweepProgress) * 0.52).clamp(0.0, 1.0);
-    final sweepScale = 0.05 + sweepProgress * 0.95;
-
-    final ringsAlpha = _ramp(p, 0.66, 0.82);
-    final ringsFade = 1.0 - _ramp(p, 0.88, 0.95);
-    final ringsOpacity = (ringsAlpha * ringsFade).clamp(0.0, 1.0);
-    final ringsScale = 0.90 + ringsAlpha * 0.10 + (1.0 - ringsFade) * -0.15;
-
-    // Fade to Royal Ivory at the end of the cinematic sequence
-    final ivoryFade = _ramp(p, 0.90, 1.0);
-
-    return Container(
-      color: const Color(0xFF17120F), // Soft Charcoal base
+    return Positioned.fill(
       child: Stack(
-        clipBehavior: Clip.hardEdge,
         children: [
-          // Background Burgundy Radial Glow
+          // Base Charcoal / Dark Canvas
+          Container(color: const Color(0xFF17120F)),
+
+          // Radial Burgundy Glow
           Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(0.0, -0.2),
-                  radius: 1.1,
-                  colors: [
-                    Color(0xFF3A0F1A), // Muted Burgundy
-                    Color(0xFF17120F), // Charcoal
-                  ],
-                  stops: [0.35, 0.85],
+            child: Opacity(
+              opacity: (1.0 - lightProgress).clamp(0.0, 1.0),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0.0, -0.2),
+                    radius: 1.15,
+                    colors: [
+                      Color(0xFF3A0F1A), // Burgundy
+                      Color(0xFF17120F), // Charcoal
+                    ],
+                    stops: [0.35, 0.85],
+                  ),
                 ),
               ),
             ),
           ),
 
-          // Warm Amber Ember Light (Active in Scenes 1 & 2)
-          if (!isReducedMotion && emberOpacity > 0.005)
-            Center(
-              child: Transform.scale(
-                scale: emberScale,
-                child: Opacity(
-                  opacity: emberOpacity,
-                  child: Container(
-                    width: math.min(viewportHeight * 0.75, 520),
-                    height: math.min(viewportHeight * 0.75, 520),
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [
-                          Color(0x60D4622A),
-                          Color(0x20C8A45C),
-                          Colors.transparent,
-                        ],
-                        stops: [0.0, 0.45, 0.72],
-                      ),
+          // Ivory Light Theme Canvas
+          if (lightProgress > 0.001)
+            Positioned.fill(
+              child: Opacity(
+                opacity: lightProgress.clamp(0.0, 1.0),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(0.0, -0.2),
+                      radius: 1.2,
+                      colors: [
+                        Color(0xFFFBF8F0),
+                        Color(0xFFF3EAD9),
+                      ],
+                      stops: [0.3, 0.9],
                     ),
                   ),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
 
-          // Firelight Sweep (Active in Scene 2)
-          if (!isReducedMotion && sweepOpacity > 0.005)
-            Center(
+  // Dynamic Warm Ember
+  Widget _buildAmbientEmber() {
+    final activeScene = _rollController.isAnimating ? _targetIndex : _currentIndex;
+    final isLight = _scenes[activeScene].theme == 'light';
+    if (isLight) return const SizedBox.shrink();
+
+    // Ember shifts position slightly per scene, matching reference HTML
+    Offset emberOffset = Offset.zero;
+    double emberScale = 1.0;
+    if (activeScene == 1) {
+      emberOffset = const Offset(-30, 25);
+      emberScale = 1.25;
+    } else if (activeScene == 2) {
+      emberOffset = const Offset(-50, -15);
+      emberScale = 1.05;
+    }
+
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 1400),
+      curve: Curves.easeInOutCubic,
+      left: MediaQuery.sizeOf(context).width * 0.60 + emberOffset.dx,
+      top: 360 + emberOffset.dy,
+      child: FractionalTranslation(
+        translation: const Offset(-0.5, -0.5),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 1400),
+          curve: Curves.easeInOutCubic,
+          scale: emberScale,
+          child: Container(
+            width: 460,
+            height: 460,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  Color(0x56D4622A),
+                  Color(0x18C8A45C),
+                  Colors.transparent,
+                ],
+                stops: [0.0, 0.45, 0.70],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Firelight Sweep (Active in Scene 1)
+  Widget _buildFirelightSweep() {
+    final isScene1 = _currentIndex == 1 || (_rollController.isAnimating && _targetIndex == 1);
+    if (!isScene1) return const SizedBox.shrink();
+
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _sweepController,
+          builder: (context, _) {
+            final t = _sweepController.value;
+            final sweepOpacity = (math.sin(math.pi * t) * 0.55).clamp(0.0, 1.0);
+            final sweepScale = 0.05 + t * 0.95;
+
+            return Center(
               child: Transform.scale(
                 scale: sweepScale,
                 child: Opacity(
                   opacity: sweepOpacity,
                   child: Container(
-                    width: math.min(viewportHeight * 1.0, 700),
-                    height: math.min(viewportHeight * 1.0, 700),
+                    width: 700,
+                    height: 700,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: RadialGradient(
                         colors: [
-                          Color(0x70D4622A),
-                          Color(0x24D4622A),
+                          Color(0x75D4622A),
+                          Color(0x28D4622A),
                           Colors.transparent,
                         ],
                         stops: [0.0, 0.30, 0.60],
@@ -286,271 +579,154 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
                   ),
                 ),
               ),
-            ),
-
-          // Celestial Ornamental Concentric Rings (Active in Scene 4)
-          if (!isReducedMotion && ringsOpacity > 0.005)
-            Positioned.fill(
-              child: Opacity(
-                opacity: ringsOpacity,
-                child: Transform.scale(
-                  scale: ringsScale,
-                  child: CustomPaint(
-                    painter: _OrnamentalRingsPainter(
-                      progress: p,
-                      ringsAlpha: ringsAlpha,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // SCENE 1: Where Royalty Begins (Crown)
-          _buildScene(
-            id: 'crown',
-            headlineLines: ['Where Royalty', 'Begins'],
-            supportingCopy:
-                "Discover the artistry, symbolism and traditions behind the world's royal treasures.",
-            imageAsset: 'assets/images/prod_austria_crown.jpg',
-            imageSemanticLabel: 'Imperial Crown of Austria set with royal gemstones and pearl arches',
-            imageCaption: 'Europe · Imperial Crown of Austria · Hofburg Vienna',
-            reveal: 'iris',
-            win: const [0.0, 0.08, 0.22, 0.30],
-            progress: p,
-            isMobile: isMobile,
-            isReducedMotion: isReducedMotion,
-          ),
-
-          // SCENE 2: The Art of Adornment (Necklace)
-          _buildScene(
-            id: 'necklace',
-            headlineLines: ['The Art of', 'Adornment'],
-            supportingCopy:
-                'Centuries of royal goldsmithing, uncut emeralds, and ceremonial kundan jewellery.',
-            imageAsset: 'assets/images/prod_kundan_necklace.jpg',
-            imageSemanticLabel: 'Mughal Kundan and Colombian emerald ceremonial royal necklace',
-            imageCaption: 'India · Mughal Kundan & Emerald Necklace · The Met',
-            reveal: 'rise',
-            win: const [0.22, 0.32, 0.46, 0.54],
-            progress: p,
-            isMobile: isMobile,
-            isReducedMotion: isReducedMotion,
-          ),
-
-          // SCENE 3: Woven in Heritage (Court Clothing)
-          _buildScene(
-            id: 'clothing',
-            headlineLines: ['Woven in', 'Heritage'],
-            supportingCopy:
-                'Sacred ceremonial court silks, supplementary gold thread songket, and coronation robes.',
-            imageAsset: 'assets/images/prod_korean_wonsam.jpg',
-            imageSemanticLabel: 'Joseon Dynasty royal court embroidered ceremonial wonsam robe',
-            imageCaption: 'Korea · Joseon Royal Court Robe (Wonsam)',
-            reveal: 'wipe',
-            win: const [0.46, 0.56, 0.68, 0.76],
-            progress: p,
-            isMobile: isMobile,
-            isReducedMotion: isReducedMotion,
-          ),
-
-          // SCENE 4: Heritage, Gathered in One Place (Closing Statement & Composition)
-          _buildScene(
-            id: 'emblem',
-            headlineLines: ['Heritage,', 'Gathered in One Place'],
-            supportingCopy:
-                'Curated from sovereign treasuries, royal dynasties, and celebrated ateliers across the globe.',
-            imageAsset: 'assets/images/prod_chimu_gold.jpg',
-            imageSemanticLabel: 'Pre-Columbian sovereign solid gold regalia sun plaque',
-            imageCaption: 'The Americas · Sovereign Sun Plaque Regalia',
-            reveal: 'iris',
-            win: const [0.68, 0.76, 0.88, 0.94],
-            progress: p,
-            isMobile: isMobile,
-            isReducedMotion: isReducedMotion,
-            isCentered: true,
-          ),
-
-          // Subtle top brand ribbon within stage
-          Positioned(
-            top: 24,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFC8A45C).withValues(alpha: 0.3)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFFC8A45C),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'ORIGIN CHRONICLES · SCROLL TO DISCOVER',
-                      style: GoogleFonts.montserrat(
-                        fontSize: 9.5,
-                        letterSpacing: 2.2,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFFD9C7A3),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // Final Ivory Fade Overlay (Seamless transition into the light collection section)
-          if (ivoryFade > 0.001)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Container(
-                  color: const Color(0xFFF8F6EF).withValues(alpha: ivoryFade),
-                ),
-              ),
-            ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildScene({
-    required String id,
-    required List<String> headlineLines,
-    required String supportingCopy,
-    required String? imageAsset,
-    required String imageSemanticLabel,
-    required String imageCaption,
-    required String reveal,
-    required List<double> win,
-    required double progress,
-    required bool isMobile,
-    required bool isReducedMotion,
-    bool isCentered = false,
-  }) {
-    final a0 = win[0];
-    final a1 = win[1];
-    final o0 = win[2];
-    final o1 = win[3];
-
-    // For the opening crown scene, ensure immediate clean visibility from progress = 0.0
-    final fadeIn = id == 'crown' && progress <= a1
-        ? (progress < a0 ? 1.0 : _ramp(progress, a0, a1).clamp(0.85, 1.0))
-        : _ramp(progress, a0, a1);
-    final fadeOut = _ramp(progress, o0, o1);
-
-    // Visibility range with buffer to eliminate pop-ins
-    final isActive = isReducedMotion ||
-        (id == 'crown' && progress <= o1 + 0.02) ||
-        (progress >= a0 - 0.02 && progress <= o1 + 0.02);
-
-    if (!isActive && !isReducedMotion) {
-      return const SizedBox.shrink();
-    }
-
-    final sceneOpacity = isReducedMotion ? 1.0 : (_clamp(fadeIn * 1.5) * (1.0 - fadeOut)).clamp(0.0, 1.0);
-    final par = isMobile ? 0.0 : 1.0;
-    final parallaxY = isReducedMotion ? 0.0 : (progress - 0.5) * -28.0 * par;
-    final imageScale = isReducedMotion ? 1.0 : (0.90 + 0.10 * fadeIn - 0.14 * fadeOut);
+  // Celestial Rings (Active in Scene 3 - Emblem)
+  Widget _buildCelestialRings() {
+    final isScene3 = _currentIndex == 3 || (_rollController.isAnimating && _targetIndex == 3);
+    if (!isScene3) return const SizedBox.shrink();
 
     return Positioned.fill(
-      child: RepaintBoundary(
-        child: Opacity(
-          opacity: sceneOpacity.clamp(0.0, 1.0),
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _orbitController,
+          builder: (context, _) {
+            return CustomPaint(
+              painter: _CelestialOrbitalRingsPainter(
+                orbitProgress: _orbitController.value,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // 3D Scene Viewport with Rolling Transforms
+  Widget _buildSceneViewport({
+    required bool isMobile,
+    required bool isReducedMotion,
+  }) {
+    final isAnimating = _rollController.isAnimating;
+
+    if (!isAnimating) {
+      // Static active scene
+      return _buildSingleScene(
+        sceneIndex: _currentIndex,
+        rotateY: _tiltRy,
+        rotateX: _tiltRx,
+        translateZ: 0.0,
+        opacity: 1.0,
+        isMobile: isMobile,
+        isReducedMotion: isReducedMotion,
+      );
+    }
+
+    // Rolling Transition between Outgoing & Incoming
+    final t = _rollAnimation.value;
+    final rollAngle = 62.0 * math.pi / 180.0; // 62 degrees
+    const rollDepth = -420.0;
+
+    // Outgoing
+    final outAngle = (_isForward ? -rollAngle : rollAngle) * t;
+    final outZ = rollDepth * t;
+    final outOpacity = (1.0 - t).clamp(0.0, 1.0);
+
+    // Incoming
+    final inAngle = (_isForward ? rollAngle : -rollAngle) * (1.0 - t);
+    final inZ = rollDepth * (1.0 - t);
+    final inOpacity = t.clamp(0.0, 1.0);
+
+    return Stack(
+      children: [
+        // Outgoing Scene
+        _buildSingleScene(
+          sceneIndex: _currentIndex,
+          rotateY: isReducedMotion ? 0.0 : outAngle + _tiltRy,
+          rotateX: isReducedMotion ? 0.0 : _tiltRx,
+          translateZ: isReducedMotion ? 0.0 : outZ,
+          opacity: outOpacity,
+          isMobile: isMobile,
+          isReducedMotion: isReducedMotion,
+        ),
+
+        // Incoming Scene
+        _buildSingleScene(
+          sceneIndex: _targetIndex,
+          rotateY: isReducedMotion ? 0.0 : inAngle + _tiltRy,
+          rotateX: isReducedMotion ? 0.0 : _tiltRx,
+          translateZ: isReducedMotion ? 0.0 : inZ,
+          opacity: inOpacity,
+          isMobile: isMobile,
+          isReducedMotion: isReducedMotion,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleScene({
+    required int sceneIndex,
+    required double rotateY,
+    required double rotateX,
+    required double translateZ,
+    required double opacity,
+    required bool isMobile,
+    required bool isReducedMotion,
+  }) {
+    if (opacity <= 0.001) return const SizedBox.shrink();
+
+    final data = _scenes[sceneIndex];
+    final isLight = data.theme == 'light';
+
+    // 3D Perspective Matrix (Perspective 1500px -> 1 / 1500 = 0.00067)
+    final transformMatrix = Matrix4.identity()
+      ..setEntry(3, 2, 0.00067)
+      ..setTranslationRaw(0.0, 0.0, translateZ);
+    if (!isReducedMotion) {
+      transformMatrix.rotateY(rotateY);
+      if (rotateX != 0.0) transformMatrix.rotateX(rotateX);
+    }
+
+    return SizedBox.expand(
+      child: Opacity(
+        opacity: opacity.clamp(0.0, 1.0),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: transformMatrix,
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : 72,
-              vertical: isMobile ? 32 : 48,
+              horizontal: isMobile ? 20 : 64,
+              vertical: isMobile ? 32 : 44,
             ),
-            child: isCentered
-                ? _buildCenteredSceneLayout(
-                    headlineLines: headlineLines,
-                    supportingCopy: supportingCopy,
-                    imageAsset: imageAsset,
-                    imageSemanticLabel: imageSemanticLabel,
-                    imageCaption: imageCaption,
-                    fadeIn: fadeIn,
-                    fadeOut: fadeOut,
-                    parallaxY: parallaxY,
-                    imageScale: imageScale,
-                    reveal: reveal,
-                    isMobile: isMobile,
-                    isReducedMotion: isReducedMotion,
-                  )
-                : _buildSplitSceneLayout(
-                    headlineLines: headlineLines,
-                    supportingCopy: supportingCopy,
-                    imageAsset: imageAsset,
-                    imageSemanticLabel: imageSemanticLabel,
-                    imageCaption: imageCaption,
-                    fadeIn: fadeIn,
-                    fadeOut: fadeOut,
-                    parallaxY: parallaxY,
-                    imageScale: imageScale,
-                    reveal: reveal,
-                    isMobile: isMobile,
-                    isReducedMotion: isReducedMotion,
-                  ),
+            child: data.isCentered
+                ? _buildCenteredSceneLayout(data, isMobile, isLight)
+                : _buildSplitSceneLayout(data, isMobile, isLight),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSplitSceneLayout({
-    required List<String> headlineLines,
-    required String supportingCopy,
-    required String? imageAsset,
-    required String imageSemanticLabel,
-    required String imageCaption,
-    required double fadeIn,
-    required double fadeOut,
-    required double parallaxY,
-    required double imageScale,
-    required String reveal,
-    required bool isMobile,
-    required bool isReducedMotion,
-  }) {
-    final textColumn = _buildSceneText(
-      headlineLines: headlineLines,
-      supportingCopy: supportingCopy,
-      fadeIn: fadeIn,
-      fadeOut: fadeOut,
-      isMobile: isMobile,
-      isReducedMotion: isReducedMotion,
-      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
-      textAlign: isMobile ? TextAlign.center : TextAlign.left,
-    );
-
-    final figure = _buildSceneFigure(
-      imageAsset: imageAsset,
-      imageSemanticLabel: imageSemanticLabel,
-      imageCaption: imageCaption,
-      fadeIn: fadeIn,
-      parallaxY: parallaxY,
-      imageScale: imageScale,
-      reveal: reveal,
-      isMobile: isMobile,
-      isReducedMotion: isReducedMotion,
-    );
+  Widget _buildSplitSceneLayout(
+    _CinematicSceneData data,
+    bool isMobile,
+    bool isLight,
+  ) {
+    final textWidget = _buildSceneText(data, isMobile, isLight);
+    final figureWidget = _buildSceneFigure(data, isMobile, isLight);
 
     if (isMobile) {
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Expanded(flex: 5, child: Center(child: figure)),
-          const SizedBox(height: 16),
-          Expanded(flex: 4, child: Center(child: textColumn)),
+          Expanded(flex: 5, child: Center(child: figureWidget)),
+          const SizedBox(height: 12),
+          Expanded(flex: 5, child: Center(child: textWidget)),
         ],
       );
     }
@@ -558,223 +734,352 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Expanded(child: Center(child: textColumn)),
+        Expanded(child: Center(child: textWidget)),
         const SizedBox(width: 48),
-        Expanded(child: Center(child: figure)),
+        Expanded(child: Center(child: figureWidget)),
       ],
     );
   }
 
-  Widget _buildCenteredSceneLayout({
-    required List<String> headlineLines,
-    required String supportingCopy,
-    required String? imageAsset,
-    required String imageSemanticLabel,
-    required String imageCaption,
-    required double fadeIn,
-    required double fadeOut,
-    required double parallaxY,
-    required double imageScale,
-    required String reveal,
-    required bool isMobile,
-    required bool isReducedMotion,
-  }) {
+  Widget _buildCenteredSceneLayout(
+    _CinematicSceneData data,
+    bool isMobile,
+    bool isLight,
+  ) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (imageAsset != null) ...[
-          SizedBox(
-            height: isMobile ? 180 : 250,
-            child: _buildSceneFigure(
-              imageAsset: imageAsset,
-              imageSemanticLabel: imageSemanticLabel,
-              imageCaption: imageCaption,
-              fadeIn: fadeIn,
-              parallaxY: parallaxY,
-              imageScale: imageScale,
-              reveal: reveal,
-              isMobile: isMobile,
-              isReducedMotion: isReducedMotion,
-              compact: true,
+        SizedBox(
+          height: isMobile ? 180 : 250,
+          child: _buildSceneFigure(data, isMobile, isLight, compact: true),
+        ),
+        const SizedBox(height: 20),
+        _buildSceneText(data, isMobile, isLight, isCentered: true),
+      ],
+    );
+  }
+
+  Widget _buildSceneText(
+    _CinematicSceneData data,
+    bool isMobile,
+    bool isLight, {
+    bool isCentered = false,
+  }) {
+    final primaryColor = isLight ? const Color(0xFF0B1F3B) : const Color(0xFFF3EAD9);
+    final secondaryColor = isLight ? const Color(0xFF5B4D42) : const Color(0xFFD9C7A3);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: isCentered ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        // Headline Lines
+        for (int i = 0; i < data.headlineLines.length; i++) ...[
+          Text(
+            data.headlineLines[i],
+            textAlign: isCentered ? TextAlign.center : TextAlign.left,
+            style: GoogleFonts.playfairDisplay(
+              fontSize: isMobile ? 30 : 48,
+              fontWeight: FontWeight.w400,
+              height: 1.10,
+              color: primaryColor,
+              letterSpacing: 0.8,
             ),
           ),
-          const SizedBox(height: 20),
         ],
-        _buildSceneText(
-          headlineLines: headlineLines,
-          supportingCopy: supportingCopy,
-          fadeIn: fadeIn,
-          fadeOut: fadeOut,
-          isMobile: isMobile,
-          isReducedMotion: isReducedMotion,
-          crossAxisAlignment: CrossAxisAlignment.center,
+
+        const SizedBox(height: 16),
+
+        // Subtitle Copy
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isCentered ? 520 : 440),
+          child: Text(
+            data.supportingCopy,
+            textAlign: isCentered ? TextAlign.center : TextAlign.left,
+            style: GoogleFonts.montserrat(
+              fontSize: isMobile ? 13 : 15,
+              height: 1.65,
+              color: secondaryColor,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+
+        // Category Chips (Scene 5)
+        if (data.chips.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: isCentered ? WrapAlignment.center : WrapAlignment.start,
+            children: data.chips.map((chip) {
+              return InkWell(
+                onTap: () {
+                  final catMap = {
+                    'Crowns & Tiaras': 'Imperial Jewels',
+                    'Necklaces & Jewellery': 'Imperial Jewels',
+                    'Royal Clothing': 'Royal Wardrobe',
+                    'Palace Furniture': 'Palace Living',
+                    'Tableware': 'Dining & Tableware',
+                    'Cultural Artefacts': 'Treasures of the World',
+                  };
+                  final cat = catMap[chip] ?? 'Imperial Jewels';
+                  context.go('/shop?category=${Uri.encodeComponent(cat)}');
+                },
+                borderRadius: BorderRadius.circular(2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: const Color(0xFFC8A45C)),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                  child: Text(
+                    chip,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2A211B),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: _scrollToCollection,
+            icon: const Icon(Icons.arrow_downward, size: 15, color: Colors.white),
+            label: Text(
+              'BROWSE COLLECTION REPERTORY',
+              style: GoogleFonts.montserrat(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.8,
+                color: Colors.white,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0B1F3B),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSceneFigure(
+    _CinematicSceneData data,
+    bool isMobile,
+    bool isLight, {
+    bool compact = false,
+  }) {
+    final figureWidth = compact
+        ? (isMobile ? 180.0 : 250.0)
+        : (isMobile ? 240.0 : 380.0);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: figureWidth,
+          constraints: BoxConstraints(
+            maxHeight: isMobile ? 220 : 360,
+          ),
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(
+                color: isLight
+                    ? const Color(0x180B1F3B)
+                    : const Color(0xFFD4622A).withValues(alpha: 0.16),
+                blurRadius: 24,
+                spreadRadius: 1,
+              ),
+              BoxShadow(
+                color: isLight
+                    ? Colors.black.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.45),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            data.imageAsset,
+            fit: BoxFit.contain,
+            semanticLabel: data.imageSemanticLabel,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 220,
+                color: const Color(0xFF29262D),
+                child: const Center(
+                  child: Icon(Icons.castle_outlined, size: 48, color: Color(0xFFC8A45C)),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          data.imageCaption,
           textAlign: TextAlign.center,
+          style: GoogleFonts.montserrat(
+            fontSize: 11,
+            letterSpacing: 1.4,
+            color: (isLight ? const Color(0xFF5B4D42) : const Color(0xFFD9C7A3))
+                .withValues(alpha: 0.8),
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSceneText({
-    required List<String> headlineLines,
-    required String supportingCopy,
-    required double fadeIn,
-    required double fadeOut,
-    required bool isMobile,
-    required bool isReducedMotion,
-    required CrossAxisAlignment crossAxisAlignment,
-    required TextAlign textAlign,
-  }) {
-    final subOpacity = isReducedMotion
-        ? 1.0
-        : (_clamp(fadeIn * 1.4 - 0.4) * (1.0 - fadeOut)).clamp(0.0, 1.0);
+  // Bottom Control Bar
+  Widget _buildControlBar({required bool isMobile}) {
+    final isLight = _scenes[_currentIndex].theme == 'light';
+    final fgColor = isLight ? const Color(0xFF2A211B) : const Color(0xFFF3EAD9);
+    final subColor = isLight ? const Color(0xFF5B4D42) : const Color(0xFFD9C7A3);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: crossAxisAlignment,
-      children: [
-        // Headline lines with elegant transform reveal
-        for (int i = 0; i < headlineLines.length; i++) ...[
-          ClipRect(
-            child: Builder(builder: (context) {
-              final t = _clamp(fadeIn * 1.25 - i * 0.20);
-              final lineTranslateY = isReducedMotion ? 0.0 : ((1.0 - _ease(t)) * 44.0 - fadeOut * 44.0);
-              return Transform.translate(
-                offset: Offset(0, lineTranslateY),
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 32,
+        vertical: 16,
+      ),
+      child: Center(
+        child: Wrap(
+          spacing: 16,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            // Previous Scene Button
+            _buildRoundNavButton(
+              icon: Icons.chevron_left,
+              label: 'Previous scene',
+              fgColor: fgColor,
+              onPressed: () => _goTo(_currentIndex - 1, forward: false),
+            ),
+
+            // Play / Pause Autoplay Button
+            _buildRoundNavButton(
+              icon: _isPlaying ? Icons.pause : Icons.play_arrow,
+              label: _isPlaying ? 'Pause autoplay' : 'Play autoplay',
+              fgColor: fgColor,
+              onPressed: _togglePlayPause,
+            ),
+
+            // Next Scene Button
+            _buildRoundNavButton(
+              icon: Icons.chevron_right,
+              label: 'Next scene',
+              fgColor: fgColor,
+              onPressed: () => _goTo(_currentIndex + 1, forward: true),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Progress Indicators (5 dots with fill bar)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(_scenes.length, (i) {
+                final isCurrent = i == _currentIndex;
+
+                return GestureDetector(
+                  onTap: () => _goTo(i),
+                  child: Container(
+                    width: 38,
+                    height: 24,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                    child: Stack(
+                      children: [
+                        // Background track line
+                        Positioned.fill(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Container(
+                              height: 2,
+                              color: fgColor.withValues(alpha: 0.25),
+                            ),
+                          ),
+                        ),
+
+                        // Animated fill bar for active scene
+                        if (isCurrent)
+                          Positioned.fill(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: AnimatedBuilder(
+                                animation: _autoplayController,
+                                builder: (context, _) {
+                                  final fillWidth = _isPlaying
+                                      ? 30.0 * _autoplayController.value
+                                      : 30.0;
+                                  return Container(
+                                    width: fillWidth,
+                                    height: 2,
+                                    color: const Color(0xFFC8A45C),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+
+            const SizedBox(width: 8),
+
+            // Active Scene Name
+            if (!isMobile)
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 160),
                 child: Text(
-                  headlineLines[i],
-                  textAlign: textAlign,
-                  style: GoogleFonts.playfairDisplay(
-                    fontSize: isMobile ? 32 : 52,
-                    fontWeight: FontWeight.w400,
-                    height: 1.10,
-                    color: const Color(0xFFF3EAD9), // Warm Royal Ivory
-                    letterSpacing: 0.8,
+                  _scenes[_currentIndex].name,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.0,
+                    color: subColor,
                   ),
                 ),
-              );
-            }),
-          ),
-        ],
-        if (supportingCopy.isNotEmpty) ...[
-          const SizedBox(height: 16),
-          Opacity(
-            opacity: subOpacity,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Text(
-                supportingCopy,
-                textAlign: textAlign,
-                style: GoogleFonts.montserrat(
-                  fontSize: isMobile ? 13 : 15.5,
-                  height: 1.65,
-                  color: const Color(0xFFD9C7A3), // Sand
-                  letterSpacing: 0.4,
-                ),
               ),
-            ),
-          ),
-        ],
-      ],
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildSceneFigure({
-    required String? imageAsset,
-    required String imageSemanticLabel,
-    required String imageCaption,
-    required double fadeIn,
-    required double parallaxY,
-    required double imageScale,
-    required String reveal,
-    required bool isMobile,
-    required bool isReducedMotion,
-    bool compact = false,
+  Widget _buildRoundNavButton({
+    required IconData icon,
+    required String label,
+    required Color fgColor,
+    required VoidCallback onPressed,
   }) {
-    if (imageAsset == null) return const SizedBox.shrink();
-
-    Widget imageWidget = Image.asset(
-      imageAsset,
-      fit: BoxFit.contain,
-      semanticLabel: imageSemanticLabel,
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-          color: const Color(0xFF29262D),
-          child: const Center(
-            child: Icon(Icons.castle_outlined, size: 48, color: Color(0xFFB99A55)),
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: fgColor.withValues(alpha: 0.6), width: 1.0),
+            color: Colors.black.withValues(alpha: 0.15),
           ),
-        );
-      },
-    );
-
-    // Performance Optimization: Only apply clipping during the active reveal (< 0.999).
-    // Once fully revealed, bypass clipping completely to eliminate saveLayer overhead.
-    Widget clippedImage = imageWidget;
-    if (!isReducedMotion && fadeIn < 0.999) {
-      if (reveal == 'iris') {
-        clippedImage = ClipPath(
-          clipper: _IrisClipper(progress: fadeIn),
-          child: imageWidget,
-        );
-      } else if (reveal == 'rise') {
-        clippedImage = ClipRect(
-          clipper: _RiseClipper(progress: fadeIn),
-          child: imageWidget,
-        );
-      } else if (reveal == 'wipe') {
-        clippedImage = ClipRect(
-          clipper: _WipeClipper(progress: fadeIn),
-          child: imageWidget,
-        );
-      }
-    }
-
-    final figureWidth = compact
-        ? (isMobile ? 180.0 : 240.0)
-        : (isMobile ? 240.0 : 380.0);
-
-    return RepaintBoundary(
-      child: Transform.translate(
-        offset: Offset(0, parallaxY),
-        child: Transform.scale(
-          scale: imageScale,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: figureWidth,
-                constraints: BoxConstraints(
-                  maxHeight: isMobile ? 220 : 380,
-                ),
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFD4622A).withValues(alpha: 0.16 * fadeIn),
-                      blurRadius: 24,
-                      spreadRadius: 1,
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: clippedImage,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                imageCaption,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.montserrat(
-                  fontSize: 11,
-                  letterSpacing: 1.4,
-                  color: const Color(0xFFD9C7A3).withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
+          child: Icon(icon, color: fgColor, size: 20),
         ),
       ),
     );
@@ -964,15 +1269,15 @@ class _OriginCinematicSectionState extends State<OriginCinematicSection> {
     required double width,
   }) {
     return _HoverableCollectionCard(
-      width: width,
       data: data,
+      width: width,
       onTap: () => context.go(data.route),
     );
   }
 }
 
 class _CollectionCardData {
-  const _CollectionCardData({
+  _CollectionCardData({
     required this.title,
     required this.subtitle,
     required this.imageAsset,
@@ -989,13 +1294,13 @@ class _CollectionCardData {
 
 class _HoverableCollectionCard extends StatefulWidget {
   const _HoverableCollectionCard({
-    required this.width,
     required this.data,
+    required this.width,
     required this.onTap,
   });
 
-  final double width;
   final _CollectionCardData data;
+  final double width;
   final VoidCallback onTap;
 
   @override
@@ -1157,117 +1462,51 @@ class _HoverableCollectionCardState extends State<_HoverableCollectionCard> {
   }
 }
 
-/// Concentric Celestial Rings Painter
-/// Draws the ornamental gold geometry from Scene 4
-class _OrnamentalRingsPainter extends CustomPainter {
-  const _OrnamentalRingsPainter({
-    required this.progress,
-    required this.ringsAlpha,
-  });
+/// Concentric Celestial Rings Painter for Scene 3 (Emblem)
+class _CelestialOrbitalRingsPainter extends CustomPainter {
+  const _CelestialOrbitalRingsPainter({required this.orbitProgress});
 
-  final double progress;
-  final double ringsAlpha;
+  final double orbitProgress;
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final minDim = math.min(size.width, size.height);
-    final baseRadius = minDim * 0.45;
+    final baseRadius = minDim * 0.42;
 
     final ringRatios = [0.14, 0.26, 0.40, 0.56, 0.74];
 
     for (int i = 0; i < ringRatios.length; i++) {
       final r = baseRadius * ringRatios[i];
       final circleAlpha = (1.0 - (ringRatios[i] * 100) / 110.0).clamp(0.2, 0.95);
-      final strokeProgress = (ringsAlpha * 1.4 - i * 0.12).clamp(0.0, 1.0);
 
       final paint = Paint()
-        ..color = const Color(0xFFC8A45C).withValues(alpha: circleAlpha * 0.75)
+        ..color = const Color(0xFFC8A45C).withValues(alpha: circleAlpha * 0.70)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.0;
 
-      if (strokeProgress >= 0.999) {
-        canvas.drawCircle(center, r, paint);
-      } else if (strokeProgress > 0.001) {
-        final sweepAngle = strokeProgress * 2 * math.pi;
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: r),
-          -math.pi / 2,
-          sweepAngle,
-          false,
-          paint,
-        );
-      }
+      canvas.drawCircle(center, r, paint);
     }
 
-    // Highlight accent ring with firelight amber stroke
+    // Highlight accent ring with firelight amber stroke & orbiting dash
     final hlRadius = baseRadius * 0.56;
-    final hlRotation = -(progress * 1.2 * 2 * math.pi);
+    final hlRotation = orbitProgress * 2 * math.pi;
     final hlPaint = Paint()
-      ..color = const Color(0xFFD4622A).withValues(alpha: 0.82)
+      ..color = const Color(0xFFD4622A).withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 2.2;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: hlRadius),
       hlRotation,
-      math.pi * 0.25,
+      math.pi * 0.20,
       false,
       hlPaint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _OrnamentalRingsPainter oldDelegate) {
-    return (oldDelegate.progress - progress).abs() > 0.001 || (oldDelegate.ringsAlpha - ringsAlpha).abs() > 0.001;
+  bool shouldRepaint(covariant _CelestialOrbitalRingsPainter oldDelegate) {
+    return oldDelegate.orbitProgress != orbitProgress;
   }
-}
-
-/// Iris reveal clipper (circle expanding from center)
-class _IrisClipper extends CustomClipper<Path> {
-  const _IrisClipper({required this.progress});
-  final double progress;
-
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    final center = Offset(size.width / 2, size.height / 2);
-    final maxDim = math.max(size.width, size.height);
-    final radius = maxDim * 0.75 * progress;
-    path.addOval(Rect.fromCircle(center: center, radius: radius));
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant _IrisClipper oldClipper) => oldClipper.progress != progress;
-}
-
-/// Rise reveal clipper (inset from bottom upward)
-class _RiseClipper extends CustomClipper<Rect> {
-  const _RiseClipper({required this.progress});
-  final double progress;
-
-  @override
-  Rect getClip(Size size) {
-    final top = size.height * (1.0 - progress);
-    return Rect.fromLTRB(0, top, size.width, size.height);
-  }
-
-  @override
-  bool shouldReclip(covariant _RiseClipper oldClipper) => oldClipper.progress != progress;
-}
-
-/// Wipe reveal clipper (inset horizontally from left to right)
-class _WipeClipper extends CustomClipper<Rect> {
-  const _WipeClipper({required this.progress});
-  final double progress;
-
-  @override
-  Rect getClip(Size size) {
-    final right = size.width * progress;
-    return Rect.fromLTRB(0, 0, right, size.height);
-  }
-
-  @override
-  bool shouldReclip(covariant _WipeClipper oldClipper) => oldClipper.progress != progress;
 }
